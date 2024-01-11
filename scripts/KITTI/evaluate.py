@@ -1206,7 +1206,6 @@ def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path
         stat_meter.plot(save_dir=out_path)
         mail.msg(summary)       # mail or print the summary.
         dump.close()
-        exit()
    
     # finish
     if len(classes)==0:
@@ -1234,7 +1233,7 @@ if __name__ == "__main__":
     
     now = datetime.now()
     timestr=now.strftime("%Y-%m-%dT%H:%M:%S") 
-    timestr="test"
+    # timestr="test"
     out_path=os.path.join(out_path,timestr)
     os.system("mkdir -p {}".format(out_path))
     config=os.path.join(out_path,"config.txt")
