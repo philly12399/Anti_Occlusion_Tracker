@@ -142,7 +142,6 @@ def iou(box_a, box_b, metric='giou_3d'):
 	# compute 2D related measures
 	boxa_bot, boxb_bot = compute_bottom(box_a, box_b)
 	I_2D = compute_inter_2D(boxa_bot, boxb_bot)
-
 	# only needed for GIoU
 	if 'giou' in metric:
 		C_2D = convex_area(boxa_bot, boxb_bot)

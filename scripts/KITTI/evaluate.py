@@ -483,7 +483,6 @@ class trackingEvaluation(object):
                 id_average_score[track_id] = average_score
                 if average_score < threshold:
                     to_delete_id.append(track_id)
-            
             seq_tracker = list()
             for frame in range(len(seq_tracker_before)):
                 seq_tracker_frame = list()  
@@ -541,6 +540,7 @@ class trackingEvaluation(object):
                     gg.fragmentation = 0
                     cost_row         = []
                     for tt in t:
+                        
                         if self.eval_2diou:
                             c = 1 - boxoverlap(gg, tt)
                         elif self.eval_3diou:
@@ -1197,6 +1197,7 @@ def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path
             e.saveToStats(dump, threshold_tmp, recall_tmp) 
 
         e.reset()
+        print("best threshold= ", best_threshold,file=dump)
         e.compute3rdPartyMetrics(best_threshold)
         e.saveToStats(dump) 
 
@@ -1205,6 +1206,7 @@ def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path
         stat_meter.plot(save_dir=out_path)
         mail.msg(summary)       # mail or print the summary.
         dump.close()
+        exit()
    
     # finish
     if len(classes)==0:
@@ -1232,6 +1234,7 @@ if __name__ == "__main__":
     
     now = datetime.now()
     timestr=now.strftime("%Y-%m-%dT%H:%M:%S") 
+    timestr="test"
     out_path=os.path.join(out_path,timestr)
     os.system("mkdir -p {}".format(out_path))
     config=os.path.join(out_path,"config.txt")
@@ -1239,4 +1242,5 @@ if __name__ == "__main__":
     msg=f"gt_path: {gt_path}\nt_path:{t_path}\nthreshold:{thres}, num_hypo:{num_hypo}\neval_3diou:{eval_3diou}, eval_2diou:{eval_2diou}"
     f.write(msg)
     f.close()
+    
     success = evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path,out_path)
