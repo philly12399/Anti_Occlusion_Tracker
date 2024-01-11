@@ -10,10 +10,10 @@ try:
     from ordereddict import OrderedDict # can be installed using pip
 except:
     from collections import OrderedDict # only included from python 2.7 on
-
 import mailpy
+# source ../../path
 from AB3DMOT_libs.dist_metrics import iou
-
+from datetime import datetime
 num_sample_pts = 41.0
 
 class tData:
@@ -108,7 +108,7 @@ class trackingEvaluation(object):
              missed         - number of missed targets (FN)
     """
 
-    def __init__(self, t_sha, gt_path="./scripts/KITTI", max_truncation = 0, min_height = 25, max_occlusion = 2, \
+    def __init__(self, t_sha, gt_path="./scripts/KITTI", t_path ="./results/KITTI" , max_truncation = 0, min_height = 25, max_occlusion = 2, \
         mail=None, cls="car", eval_3diou=True, eval_2diou=False, num_hypo=1, thres=None):
         # get number of sequences and
         # get number of frames per sequence from test mapping
@@ -133,7 +133,7 @@ class trackingEvaluation(object):
         # data and parameter
         self.gt_path           = os.path.join(gt_path, "label")
         self.t_sha             = t_sha
-        self.t_path            = os.path.join("./results/KITTI", t_sha, "data_%d" % (int(num_hypo)-1))
+        self.t_path            = os.path.join(t_path, "label")
         
         # statistics and numbers for evaluation
         self.n_gt              = 0 # number of ground truth detections minus ignored false negatives and true positives
@@ -275,9 +275,9 @@ class trackingEvaluation(object):
                 t_data.y1           = float(fields[7])          # top    [px]
                 t_data.x2           = float(fields[8])          # right  [px]
                 t_data.y2           = float(fields[9])          # bottom [px]
-                t_data.h            = float(fields[10])         # height [m]
+                t_data.h            = float(fields[12])         # height [m]
                 t_data.w            = float(fields[11])         # width  [m]
-                t_data.l            = float(fields[12])         # length [m]
+                t_data.l            = float(fields[10])         # length [m]
                 t_data.x            = float(fields[13])         # X [m]
                 t_data.y            = float(fields[14])         # Y [m]
                 t_data.z            = float(fields[15])         # Z [m]
@@ -1109,9 +1109,9 @@ class stat:
         plt.close()
         # zxc
 
-    def plot(self):
-        save_dir = os.path.join("./results/KITTI", self.t_sha)
-
+    def plot(self,save_dir="./results/KITTI"):
+        save_dir = os.path.join(save_dir, "plot")
+        os.system("mkdir -p {}".format(save_dir))
         self.plot_over_recall(self.mota_list, 'MOTA - Recall Curve', 'MOTA', os.path.join(save_dir, 'MOTA_recall_curve_%s_%s.pdf' % (self.cls, self.suffix)))
         self.plot_over_recall(self.sMOTA_list, 'sMOTA - Recall Curve', 'sMOTA', os.path.join(save_dir, 'sMOTA_recall_curve_%s_%s.pdf' % (self.cls, self.suffix)))
         self.plot_over_recall(self.motp_list, 'MOTP - Recall Curve', 'MOTP', os.path.join(save_dir, 'MOTP_recall_curve_%s_%s.pdf' % (self.cls, self.suffix)))
@@ -1120,12 +1120,11 @@ class stat:
         self.plot_over_recall(self.fn_list, 'False Negative - Recall Curve', 'False Negative', os.path.join(save_dir, 'FN_recall_curve_%s_%s.pdf' % (self.cls, self.suffix)))
         self.plot_over_recall(self.precision_list, 'Precision - Recall Curve', 'Precision', os.path.join(save_dir, 'precision_recall_curve_%s_%s.pdf' % (self.cls, self.suffix)))
 
-def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres):
+def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path,out_path):
     """
         Entry point for evaluation, will load the data and start evaluation for
         CAR and PEDESTRIAN if available.
     """
-    
     # start evaluation and instanciated eval object
     if eval_3diou:
         mail.msg("Processing Result for KITTI 3D MOT Benchmark")
@@ -1135,11 +1134,12 @@ def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres):
         assert False, 'error'
     classes = []
     # for c in ("car", "pedestrian", "cyclist"):
-    for c in ("cyclist", "pedestrian", "car"):
-        e = trackingEvaluation(t_sha=result_sha, mail=mail,cls=c,eval_3diou=eval_3diou,eval_2diou=eval_2diou,num_hypo=num_hypo,thres=thres)
+    for c in ("car", "cyclist", "truck"):
+        e = trackingEvaluation(t_sha=result_sha,gt_path=gt_path,t_path=t_path,mail=mail,cls=c,eval_3diou=eval_3diou,eval_2diou=eval_2diou,num_hypo=num_hypo,thres=thres)
         # load tracker data and check provided classes
         try:
             if not e.loadTracker():
+                print("load tracker fail")
                 continue
             mail.msg("Loading Results - Success")
             mail.msg("Evaluate Object Class: %s" % c.upper())
@@ -1148,9 +1148,22 @@ def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres):
             mail.msg("Feel free to contact us (lenz@kit.edu), if you receive this error message:")
             mail.msg("   Caught exception while loading result data.")
             break
+        
+        # for tt in e.tracker[0][0]:
+        #     print("-----------------")
+        #     print(tt.__str__())
+        #     print("-----------------")
+
         # load groundtruth data for this class
         if not e.loadGroundtruth():
             raise ValueError("Ground truth not found.")
+
+        # for tt in e.groundtruth[0][0]:
+        #     print("===================")
+        #     print(tt.__str__())
+        #     print("===================")
+        # continue
+
         mail.msg("Loading Groundtruth - Success")
         # sanity checks
         if len(e.groundtruth) != len(e.tracker):
@@ -1161,7 +1174,8 @@ def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres):
 
         if eval_3diou: suffix = 'eval3D'
         else: suffix = 'eval2D'
-        filename = os.path.join(e.t_path, "../summary_%s_average_%s.txt" % (c, suffix)); dump = open(filename, "w+")
+        filename = os.path.join(out_path, "summary_%s_average_%s.txt" % (c, suffix))
+        dump = open(filename, "w+")
         stat_meter = stat(t_sha=result_sha, cls=c, suffix=suffix, dump=dump)
         e.compute3rdPartyMetrics()
 
@@ -1188,10 +1202,10 @@ def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres):
 
         stat_meter.output()
         summary = stat_meter.print_summary()
-        stat_meter.plot()
+        stat_meter.plot(save_dir=out_path)
         mail.msg(summary)       # mail or print the summary.
         dump.close()
-
+   
     # finish
     if len(classes)==0:
         mail.msg("The uploaded results could not be evaluated. Check for format errors.")
@@ -1206,30 +1220,23 @@ def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres):
 #   - 2D or 3D (using 2D or 3D MOT evaluation system)
 if __name__ == "__main__":
 
-    # check for correct number of arguments. if user_sha and email are not supplied,
-    # no notification email is sent (this option is used for auto-updates)
-    if len(sys.argv)!=3 and len(sys.argv)!=4 and len(sys.argv)!=5:
-        print("Usage: python3 scripts/KITTI/evaluate.py result_sha num_hypothesis(e.g., 1) dimension(e.g., 2D or 3D) thres(e.g., 0.25)")
-        sys.exit(1);
-
-    # get unique sha key of submitted results
-    result_sha = sys.argv[1]
-    num_hypo = sys.argv[2]
-    mail = mailpy.Mail("")
-    # 
-    if len(sys.argv)>=4:
-        if sys.argv[3] == '2D':
-            eval_3diou, eval_2diou = False, True      # eval 2d
-        elif sys.argv[3] == '3D':
-            eval_3diou, eval_2diou = True, False        # eval 3d
-        else:
-            print("Usage: python3 scripts/KITTI/evaluate.py result_sha num_hypothesis(e.g., 1) dimension(e.g., 2D or 3D) thres(e.g., 0.25)")
-            sys.exit(1);    
-        if len(sys.argv)==5: thres = float(sys.argv[4])
-        else: thres = None
-    else:
-        eval_3diou, eval_2diou = True, False        # eval 3d
-        thres = None
-
     # evaluate results
-    success = evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres)
+    result_sha = ""
+    mail = mailpy.Mail("")
+    eval_3diou, eval_2diou = True, False   
+    thres = 0.25
+    num_hypo = 1
+    gt_path="/home/philly12399/evaltest/gt/"
+    t_path="/home/philly12399/evaltest/track/"
+    out_path="/home/philly12399/evaltest/output/"
+    
+    now = datetime.now()
+    timestr=now.strftime("%Y-%m-%dT%H:%M:%S") 
+    out_path=os.path.join(out_path,timestr)
+    os.system("mkdir -p {}".format(out_path))
+    config=os.path.join(out_path,"config.txt")
+    f = open(config, "w")    
+    msg=f"gt_path: {gt_path}\nt_path:{t_path}\nthreshold:{thres}, num_hypo:{num_hypo}\neval_3diou:{eval_3diou}, eval_2diou:{eval_2diou}"
+    f.write(msg)
+    f.close()
+    success = evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path,out_path)
