@@ -12,6 +12,7 @@ except:
     from collections import OrderedDict # only included from python 2.7 on
 import mailpy
 # source ../../path
+import click
 from AB3DMOT_libs.dist_metrics import iou
 from datetime import datetime
 num_sample_pts = 41.0
@@ -108,7 +109,7 @@ class trackingEvaluation(object):
              missed         - number of missed targets (FN)
     """
 
-    def __init__(self, t_sha, gt_path="./scripts/KITTI", t_path ="./results/KITTI" , max_truncation = 0, min_height = 25, max_occlusion = 2, \
+    def __init__(self, t_sha, gt_path="./scripts/KITTI", t_path ="./results/KITTI" , max_truncation = 0, min_height = 0, max_occlusion = 4, \
         mail=None, cls="car", eval_3diou=True, eval_2diou=False, num_hypo=1, thres=None):
         # get number of sequences and
         # get number of frames per sequence from test mapping
@@ -513,7 +514,7 @@ class trackingEvaluation(object):
             
             n_gts = 0
             n_trs = 0
-            
+
             for f in range(len(seq_gt)):        # go through each frame
                 g = seq_gt[f]
                 dc = seq_dc[f]
@@ -561,9 +562,8 @@ class trackingEvaluation(object):
 
                 if len(g) == 0:
                     cost_matrix=[[]]
-                # associate
+                # associate                
                 association_matrix = hm.compute(cost_matrix)
-
                 # tmp variables for sanity checks and MODP computation
                 tmptp = 0
                 tmpfp = 0
@@ -611,9 +611,9 @@ class trackingEvaluation(object):
                     ignoredtrackers[tt.track_id] = -1
                     # ignore detection if it belongs to a neighboring class or is
                     # smaller or equal to the minimum height
-                    
                     tt_height = abs(tt.y1 - tt.y2)
-                    if ((self.cls=="car" and tt.obj_type=="van") or (self.cls=="pedestrian" and tt.obj_type=="person_sitting") or tt_height<=self.min_height) and not tt.valid:
+                    if ((self.cls=="car" and tt.obj_type=="van") or (self.cls=="pedestrian" and tt.obj_type=="person_sitting")\
+                        or (tt_height<=self.min_height and self.eval_2diou) ) and not tt.valid:
                         nignoredtracker+= 1
                         tt.ignored      = True
                         ignoredtrackers[tt.track_id] = 1
@@ -622,7 +622,7 @@ class trackingEvaluation(object):
                         # as KITTI does not provide ground truth 3D box for DontCare objects, we have to use
                         # 2D IoU here and a threshold of 0.5 for 2D IoU. 
                         overlap = boxoverlap(tt, d, "a")
-                        if overlap > 0.5 and not tt.valid:
+                        if overlap > 0.5 and not tt.valid:                            
                             tt.ignored      = True
                             nignoredtracker += 1
                             ignoredtrackers[tt.track_id] = 1
@@ -742,14 +742,14 @@ class trackingEvaluation(object):
                 if tmpfp<0:
                     print(tmpfp, len(t), tmptp, nignoredtracker, nignoredtp, nignoredpairs)
                     raise NameError("Something went wrong! FP is negative")
-                if tmptp + tmpfn != len(g)-ignoredfn-nignoredtp:
+                if  tmptp + tmpfn != len(g)-ignoredfn-nignoredtp:
                     print("seqidx", seq_idx)
                     print("frame ", f)
                     print("TP    ", tmptp)
                     print("FN    ", tmpfn)
                     print("FP    ", tmpfp)
                     print("nGT   ", len(g))
-                    print("nAss  ", len(association_matrix))
+                    print("nAss  ", len(association_matrix), len(association_matrix[0]))
                     print("ign GT", ignoredfn)
                     print("ign TP", nignoredtp)
                     raise NameError("Something went wrong! nGroundtruth is not TP+FN")
@@ -1004,7 +1004,7 @@ class trackingEvaluation(object):
 
         if threshold is None: summary = self.createSummary_details()
         else: summary = self.createSummary_simple(threshold, recall)
-        mail.msg(summary)       # mail or print the summary.
+        self.mail.msg(summary)       # mail or print the summary.
         print(summary, file=dump)
 
 class stat:
@@ -1120,7 +1120,7 @@ class stat:
         self.plot_over_recall(self.fn_list, 'False Negative - Recall Curve', 'False Negative', os.path.join(save_dir, 'FN_recall_curve_%s_%s.pdf' % (self.cls, self.suffix)))
         self.plot_over_recall(self.precision_list, 'Precision - Recall Curve', 'Precision', os.path.join(save_dir, 'precision_recall_curve_%s_%s.pdf' % (self.cls, self.suffix)))
 
-def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path,out_path):
+def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path,out_path, max_occlusion = 4):
     """
         Entry point for evaluation, will load the data and start evaluation for
         CAR and PEDESTRIAN if available.
@@ -1135,7 +1135,7 @@ def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path
     classes = []
     # for c in ("car", "pedestrian", "cyclist"):
     for c in ("car", "cyclist", "truck"):
-        e = trackingEvaluation(t_sha=result_sha,gt_path=gt_path,t_path=t_path,mail=mail,cls=c,eval_3diou=eval_3diou,eval_2diou=eval_2diou,num_hypo=num_hypo,thres=thres)
+        e = trackingEvaluation(t_sha=result_sha,gt_path=gt_path,t_path=t_path,mail=mail,cls=c,eval_3diou=eval_3diou,eval_2diou=eval_2diou,num_hypo=num_hypo,thres=thres, max_occlusion = max_occlusion)
         # load tracker data and check provided classes
         try:
             if not e.loadTracker():
@@ -1182,6 +1182,8 @@ def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path
         # evaluate the mean average metrics
         best_mota, best_threshold = 0, -10000
         threshold_list, recall_list = e.getThresholds(e.scores, e.num_gt)
+        threshold_list.append(0)
+        recall_list.append(-10000)
         for threshold_tmp, recall_tmp in zip(threshold_list, recall_list):
             data_tmp = dict()
             e.reset()
@@ -1214,32 +1216,64 @@ def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path
     mail.msg("Thank you for participating in our benchmark!")
     return True
 
+@click.command()
+# Add your options here
+@click.option(
+    "--gt_path",
+    "-g",
+    type=str,
+    default="/home/philly12399/evaltest/gt/",
+    # required=True,
+    help="Path of groundtruth.",
+)
+@click.option(
+    "--t_path",
+    "-t",
+    type=str,
+    default="/home/philly12399/evaltest/track/",
+    # required=True,
+    help="Path of track.",
+)
+@click.option(
+    "--out_path",
+    "-o",
+    type=str,
+    default="/home/philly12399/evaltest/output/",
+    # required=True,
+    help="Path of output.",
+)
+@click.option(
+    "--exp_name",
+    "-e",
+    type=str,
+    default="seq4_sv_v1",
+    # required=True,
+    help="exp name.",
+)
+def main(gt_path, t_path, out_path, exp_name):
+    # evaluate results
+    result_sha = ""
+    mail = mailpy.Mail("")
+    eval_3diou, eval_2diou = True, False   
+    thres_list = [0.25,0.5]
+    num_hypo = 1
+    max_occlusion = 1
+    timestr=datetime.now().strftime("%Y-%m-%dT%H:%M:%S") 
+    
+    for thres in thres_list:
+        new_out_path=os.path.join(out_path,exp_name+f"@{thres}")
+        os.system("mkdir -p {}".format(new_out_path))
+        config=os.path.join(new_out_path,"config.txt")
+        f = open(config, "w")    
+        msg=f"gt_path: {gt_path}\nt_path:{t_path}\nthreshold:{thres}, num_hypo:{num_hypo}\neval_3diou:{eval_3diou}, eval_2diou:{eval_2diou}, max_occlusion:{max_occlusion}"
+        f.write(msg)
+        f.close()        
+        success = evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path,new_out_path, max_occlusion = max_occlusion)
 #########################################################################
 # entry point of evaluation script
 # input:
 #   - result_sha (unique key of results)
 #   - 2D or 3D (using 2D or 3D MOT evaluation system)
 if __name__ == "__main__":
-
-    # evaluate results
-    result_sha = ""
-    mail = mailpy.Mail("")
-    eval_3diou, eval_2diou = True, False   
-    thres = 0.25
-    num_hypo = 1
-    gt_path="/home/philly12399/evaltest/gt/"
-    t_path="/home/philly12399/evaltest/track/"
-    out_path="/home/philly12399/evaltest/output/"
+    main()
     
-    now = datetime.now()
-    timestr=now.strftime("%Y-%m-%dT%H:%M:%S") 
-    # timestr="test"
-    out_path=os.path.join(out_path,timestr)
-    os.system("mkdir -p {}".format(out_path))
-    config=os.path.join(out_path,"config.txt")
-    f = open(config, "w")    
-    msg=f"gt_path: {gt_path}\nt_path:{t_path}\nthreshold:{thres}, num_hypo:{num_hypo}\neval_3diou:{eval_3diou}, eval_2diou:{eval_2diou}"
-    f.write(msg)
-    f.close()
-    
-    success = evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path,out_path)

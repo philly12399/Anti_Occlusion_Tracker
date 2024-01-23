@@ -1,0 +1,4 @@
+gt_path: ./evaltest/gt/
+t_path:./evaltest/track/
+threshold:0.25, num_hypo:1
+eval_3diou:True, eval_2diou:False
