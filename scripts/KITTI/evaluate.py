@@ -551,7 +551,9 @@ class trackingEvaluation(object):
 
                         # gating for box overlap
                         if c <= 1 - self.min_overlap:
+                            # print(len(cost_matrix),len(cost_row),1-c)                            
                             cost_row.append(c)
+                            
                         else:
                             cost_row.append(max_cost) # = 1e9
                     cost_matrix.append(cost_row)
@@ -559,7 +561,6 @@ class trackingEvaluation(object):
                     # extend groundtruth trajectories lists (merge lists)
                     seq_trajectories[gg.track_id].append(-1)
                     seq_ignored[gg.track_id].append(False)
-
                 if len(g) == 0:
                     cost_matrix=[[]]
                 # associate                
@@ -578,6 +579,7 @@ class trackingEvaluation(object):
                 for row,col in association_matrix:
                     # apply gating on box overlap
                     c = cost_matrix[row][col]
+                    # print(f"g{row},t{col} iou:{1-c}")
                     if c < max_cost:
                         g[row].tracker   = t[col].track_id
                         this_ids[1][row] = t[col].track_id
@@ -597,7 +599,6 @@ class trackingEvaluation(object):
                         g[row].tracker = -1
                         self.fn       += 1
                         tmpfn         += 1
-                
                 # associate tracker and DontCare areas
                 # ignore tracker in neighboring classes
                 nignoredtracker = 0 # number of ignored tracker detections
@@ -784,7 +785,6 @@ class trackingEvaluation(object):
                 if tmptp!=0:
                     MODP_t = tmpc/float(tmptp)
                 self.MODP_t.append(MODP_t)
-
             # remove empty lists for current gt trajectories
             self.gt_trajectories[seq_idx]             = seq_trajectories
             self.ign_trajectories[seq_idx]            = seq_ignored
@@ -922,6 +922,7 @@ class trackingEvaluation(object):
         summary += self.printEntry("Multiple Object Tracking Accuracy (MOTAL)", self.MOTAL) + "\n"
         summary += self.printEntry("Multiple Object Detection Accuracy (MODA)", self.MODA) + "\n"
         summary += self.printEntry("Multiple Object Detection Precision (MODP)", float(self.MODP)) + "\n"
+        # summary += self.printEntry("Total IoU (TC)", self.total_cost) + "\n"
         summary += "\n"
         summary += self.printEntry("Recall", self.recall) + "\n"
         summary += self.printEntry("Precision", self.precision) + "\n"
@@ -1133,8 +1134,9 @@ def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path
     else:
         assert False, 'error'
     classes = []
-    # for c in ("car", "pedestrian", "cyclist"):
-    for c in ("car", "cyclist", "truck"):
+    # clist =  ["car"] 
+    clist = ["car", "cyclist", "truck"]
+    for c in clist: # 
         e = trackingEvaluation(t_sha=result_sha,gt_path=gt_path,t_path=t_path,mail=mail,cls=c,eval_3diou=eval_3diou,eval_2diou=eval_2diou,num_hypo=num_hypo,thres=thres, max_occlusion = max_occlusion)
         # load tracker data and check provided classes
         try:
@@ -1246,7 +1248,7 @@ def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path
     "--exp_name",
     "-e",
     type=str,
-    default="seq4_sv_v1",
+    default="test",
     # required=True,
     help="exp name.",
 )
@@ -1257,7 +1259,7 @@ def main(gt_path, t_path, out_path, exp_name):
     eval_3diou, eval_2diou = True, False   
     thres_list = [0.25,0.5]
     num_hypo = 1
-    max_occlusion = 1
+    max_occlusion = 4
     timestr=datetime.now().strftime("%Y-%m-%dT%H:%M:%S") 
     
     for thres in thres_list:
