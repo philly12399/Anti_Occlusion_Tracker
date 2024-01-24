@@ -388,7 +388,11 @@ class trackingEvaluation(object):
             thresholds.append(score)
             recalls.append(current_recall)
             current_recall += 1 / (num_sample_pts - 1.0)
-
+        #philly add
+        while(len(thresholds)< num_sample_pts):
+            thresholds.append(thresholds[-1])
+            recalls.append(recalls[-1])
+            
         return thresholds[1:], recalls[1:]          # throw the first one with 0 recall
 
     def reset(self):
@@ -1134,7 +1138,7 @@ def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path
     else:
         assert False, 'error'
     classes = []
-    # clist =  ["car"] 
+    clist =  ["car"] 
     clist = ["car", "cyclist", "truck"]
     for c in clist: # 
         e = trackingEvaluation(t_sha=result_sha,gt_path=gt_path,t_path=t_path,mail=mail,cls=c,eval_3diou=eval_3diou,eval_2diou=eval_2diou,num_hypo=num_hypo,thres=thres, max_occlusion = max_occlusion)
@@ -1184,8 +1188,6 @@ def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path
         # evaluate the mean average metrics
         best_mota, best_threshold = 0, -10000
         threshold_list, recall_list = e.getThresholds(e.scores, e.num_gt)
-        threshold_list.append(0)
-        recall_list.append(-10000)
         for threshold_tmp, recall_tmp in zip(threshold_list, recall_list):
             data_tmp = dict()
             e.reset()
@@ -1199,17 +1201,19 @@ def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path
                 best_threshold = threshold_tmp
                 best_mota = mota_tmp
             e.saveToStats(dump, threshold_tmp, recall_tmp) 
-
         e.reset()
         print("best threshold= ", best_threshold,file=dump)
+        print(len(threshold_list), len(recall_list))
         e.compute3rdPartyMetrics(best_threshold)
         e.saveToStats(dump) 
 
         stat_meter.output()
         summary = stat_meter.print_summary()
+        
         stat_meter.plot(save_dir=out_path)
         mail.msg(summary)       # mail or print the summary.
         dump.close()
+        
    
     # finish
     if len(classes)==0:
