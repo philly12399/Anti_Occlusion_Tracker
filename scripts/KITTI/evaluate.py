@@ -520,6 +520,9 @@ class trackingEvaluation(object):
             n_trs = 0
 
             for f in range(len(seq_gt)):        # go through each frame
+                print(f)
+                if(f>5):
+                    exit()
                 g = seq_gt[f]
                 dc = seq_dc[f]
 
@@ -583,7 +586,7 @@ class trackingEvaluation(object):
                 for row,col in association_matrix:
                     # apply gating on box overlap
                     c = cost_matrix[row][col]
-                    # print(f"g{row},t{col} iou:{1-c}")
+                    print(f"g{row},t{col} iou:{1-c}")
                     if c < max_cost:
                         g[row].tracker   = t[col].track_id
                         this_ids[1][row] = t[col].track_id
@@ -1125,7 +1128,7 @@ class stat:
         self.plot_over_recall(self.fn_list, 'False Negative - Recall Curve', 'False Negative', os.path.join(save_dir, 'FN_recall_curve_%s_%s.pdf' % (self.cls, self.suffix)))
         self.plot_over_recall(self.precision_list, 'Precision - Recall Curve', 'Precision', os.path.join(save_dir, 'precision_recall_curve_%s_%s.pdf' % (self.cls, self.suffix)))
 
-def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path,out_path, max_occlusion = 4):
+def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path,out_path, max_occlusion = 4, cls_list=["car", "cyclist", "truck"]):
     """
         Entry point for evaluation, will load the data and start evaluation for
         CAR and PEDESTRIAN if available.
@@ -1138,9 +1141,7 @@ def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path
     else:
         assert False, 'error'
     classes = []
-    clist =  ["car"] 
-    clist = ["car", "cyclist", "truck"]
-    for c in clist: # 
+    for c in cls_list: # 
         e = trackingEvaluation(t_sha=result_sha,gt_path=gt_path,t_path=t_path,mail=mail,cls=c,eval_3diou=eval_3diou,eval_2diou=eval_2diou,num_hypo=num_hypo,thres=thres, max_occlusion = max_occlusion)
         # load tracker data and check provided classes
         try:
@@ -1262,6 +1263,9 @@ def main(gt_path, t_path, out_path, exp_name):
     mail = mailpy.Mail("")
     eval_3diou, eval_2diou = True, False   
     thres_list = [0.25,0.5]
+    cls_list = ["car", "cyclist", "truck"]
+    # cls_list = ["cyclist"]
+    
     num_hypo = 1
     max_occlusion = 4
     timestr=datetime.now().strftime("%Y-%m-%dT%H:%M:%S") 
@@ -1274,7 +1278,7 @@ def main(gt_path, t_path, out_path, exp_name):
         msg=f"gt_path: {gt_path}\nt_path:{t_path}\nthreshold:{thres}, num_hypo:{num_hypo}\neval_3diou:{eval_3diou}, eval_2diou:{eval_2diou}, max_occlusion:{max_occlusion}"
         f.write(msg)
         f.close()        
-        success = evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path,new_out_path, max_occlusion = max_occlusion)
+        success = evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path,new_out_path, max_occlusion = max_occlusion, cls_list = cls_list)
 #########################################################################
 # entry point of evaluation script
 # input:
