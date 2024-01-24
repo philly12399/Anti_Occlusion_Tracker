@@ -1203,7 +1203,7 @@ def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path
             e.saveToStats(dump, threshold_tmp, recall_tmp) 
         e.reset()
         print("best threshold= ", best_threshold,file=dump)
-        print(len(threshold_list), len(recall_list))
+        # print(len(threshold_list), len(recall_list))
         e.compute3rdPartyMetrics(best_threshold)
         e.saveToStats(dump) 
 
