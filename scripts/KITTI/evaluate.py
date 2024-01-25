@@ -257,7 +257,7 @@ class trackingEvaluation(object):
                 fields            = line.split(" ")
                 # classes that should be loaded (ignored neighboring classes)
                 if "car" in cls.lower():
-                    classes = ["car","van"]
+                    classes = ["car","van","truck"] # truck視同car 
                 elif "pedestrian" in cls.lower():
                     classes = ["pedestrian","person_sitting"]
                 else:
@@ -382,16 +382,18 @@ class trackingEvaluation(object):
                 r_recall = (i + 2) / float(num_gt)
             else:
                 r_recall = l_recall
+            
             if (((r_recall - current_recall) < (current_recall - l_recall)) and (i < (len(scores) - 1))):
                 continue
 
             thresholds.append(score)
             recalls.append(current_recall)
             current_recall += 1 / (num_sample_pts - 1.0)
-        #philly add
-        while(len(thresholds)< num_sample_pts):
-            thresholds.append(thresholds[-1])
-            recalls.append(recalls[-1])
+
+        # #philly add
+        # while(len(thresholds)< num_sample_pts):
+        #     thresholds.append(thresholds[-1])
+        #     recalls.append(recalls[-1])
             
         return thresholds[1:], recalls[1:]          # throw the first one with 0 recall
 
@@ -467,7 +469,7 @@ class trackingEvaluation(object):
             seq_gt                = self.groundtruth[seq_idx]
             seq_dc                = self.dcareas[seq_idx] # don't care areas
             seq_tracker_before    = self.tracker[seq_idx]
-
+            
             # remove the tracks with low confidence for each frame
             tracker_id_score = dict()
             for frame in range(len(seq_tracker_before)):
@@ -518,15 +520,10 @@ class trackingEvaluation(object):
             
             n_gts = 0
             n_trs = 0
-
             for f in range(len(seq_gt)):        # go through each frame
-                print(f)
-                if(f>5):
-                    exit()
                 g = seq_gt[f]
-                dc = seq_dc[f]
-
-                t = seq_tracker[f]
+                dc = seq_dc[f]                
+                t = seq_tracker[f]        
                 # counting total number of ground truth and tracker objects
                 self.n_gt += len(g)
                 self.n_tr += len(t)
@@ -586,7 +583,7 @@ class trackingEvaluation(object):
                 for row,col in association_matrix:
                     # apply gating on box overlap
                     c = cost_matrix[row][col]
-                    print(f"g{row},t{col} iou:{1-c}")
+                    # print(f"g{row},t{col} iou:{1-c}")
                     if c < max_cost:
                         g[row].tracker   = t[col].track_id
                         this_ids[1][row] = t[col].track_id
@@ -793,6 +790,7 @@ class trackingEvaluation(object):
                     MODP_t = tmpc/float(tmptp)
                 self.MODP_t.append(MODP_t)
             # remove empty lists for current gt trajectories
+
             self.gt_trajectories[seq_idx]             = seq_trajectories
             self.ign_trajectories[seq_idx]            = seq_ignored
             
@@ -1128,7 +1126,7 @@ class stat:
         self.plot_over_recall(self.fn_list, 'False Negative - Recall Curve', 'False Negative', os.path.join(save_dir, 'FN_recall_curve_%s_%s.pdf' % (self.cls, self.suffix)))
         self.plot_over_recall(self.precision_list, 'Precision - Recall Curve', 'Precision', os.path.join(save_dir, 'precision_recall_curve_%s_%s.pdf' % (self.cls, self.suffix)))
 
-def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path,out_path, max_occlusion = 4, cls_list=["car", "cyclist", "truck"]):
+def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path,out_path, max_occlusion = 4, cls_list=["car", "cyclist"]):
     """
         Entry point for evaluation, will load the data and start evaluation for
         CAR and PEDESTRIAN if available.
@@ -1263,7 +1261,7 @@ def main(gt_path, t_path, out_path, exp_name):
     mail = mailpy.Mail("")
     eval_3diou, eval_2diou = True, False   
     thres_list = [0.25,0.5]
-    cls_list = ["car", "cyclist", "truck"]
+    cls_list = ["car", "cyclist"]
     # cls_list = ["cyclist"]
     
     num_hypo = 1
