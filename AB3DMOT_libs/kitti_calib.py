@@ -88,11 +88,19 @@ class Calibration(object):
         Ref: https://github.com/utiasSTARS/pykitti/blob/master/pykitti/utils.py
         '''
         data = {}
+        
         with open(filepath, 'r') as f:
             for line in f.readlines():
                 line = line.rstrip()
                 if len(line)==0: continue
-                key, value = line.split(':', 1)
+                try:
+                    key, value = line.split(':', 1)
+                except:
+                    key, value = line.split(' ', 1)
+                    value = ' '+ value
+                if(key == 'Tr_velo_cam'): key = 'Tr_velo_to_cam'
+                elif(key == 'Tr_imu_velo'): key = 'Tr_imu_to_velo'
+                elif(key == 'R_rect'): key = 'R0_rect'
                 # The only non-float values in these files are dates, which
                 # we don't care about anyway
                 try:

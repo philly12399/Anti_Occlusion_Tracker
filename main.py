@@ -26,7 +26,6 @@ def main_per_cat(cfg, cat, log, ID_start):
 	subfolder, det_id2str, hw, seq_eval, data_root = get_subfolder_seq(cfg.dataset, cfg.split)
 	trk_root = os.path.join(data_root, 'tracking')
 	save_dir = os.path.join(cfg.save_root, result_sha + '_H%d' % cfg.num_hypo); mkdir_if_missing(save_dir)
-
 	# create eval dir for each hypothesis 
 	eval_dir_dict = dict()
 	for index in range(cfg.num_hypo):
