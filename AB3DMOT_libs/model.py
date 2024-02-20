@@ -89,6 +89,10 @@ class AB3DMOT(object):
 				elif cat == 'Trailer': 		metric, thres, min_hits, max_age = 'dist', 10, 3, 2
 				elif cat == 'Truck': 		metric, thres, min_hits, max_age = 'dist', 10, 3, 2
 				else: assert False, 'error'
+		elif cfg.dataset == 'Wayside':
+			# if cfg.det_name == 'pvrcnn':				# tuned for PV-RCNN detections
+			if cat == 'Car': 			algm, metric, thres, min_hits, max_age = 'hungar', 'giou_3d', -0.2, 3, 2		
+			elif cat == 'Cyclist': 		algm, metric, thres, min_hits, max_age = 'hungar', 'dist_3d', 2, 3, 4
 			else: assert False, 'error'
 		else: assert False, 'no such dataset'
 
@@ -117,10 +121,10 @@ class AB3DMOT(object):
 		# 	dets - a numpy array of detections in the format [[h,w,l,x,y,z,theta],...]
 
 		dets_new = []
+
 		for det in dets:
 			det_tmp = Box3D.array2bbox_raw(det)
 			dets_new.append(det_tmp)
-
 		return dets_new
 
 	def within_range(self, theta):
@@ -393,7 +397,6 @@ class AB3DMOT(object):
 		"""
 		dets, info = dets_all['dets'], dets_all['info']         # dets: N x 7, float numpy array
 		if self.debug_id: print('\nframe is %s' % frame)
-	
 		# logging
 		print_str = '\n\n*****************************************\n\nprocessing seq_name/frame %s/%d' % (seq_name, frame)
 		print_log(print_str, log=self.log, display=False)
@@ -404,8 +407,8 @@ class AB3DMOT(object):
 		self.id_past = [trk.id for trk in self.trackers]
 
 		# process detection format
+  
 		dets = self.process_dets(dets)
-
 		# tracks propagation based on velocity
 		trks = self.prediction()
 

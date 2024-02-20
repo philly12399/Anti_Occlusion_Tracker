@@ -12,7 +12,7 @@ from xinshuo_miscellaneous import get_timestring, print_log
 
 def parse_args():
     parser = argparse.ArgumentParser(description='AB3DMOT')
-    parser.add_argument('--dataset', type=str, default='nuScenes', help='KITTI, nuScenes')
+    parser.add_argument('--dataset', type=str, default='nuScenes', help='KITTI, nuScenes, Wayside')
     parser.add_argument('--split', type=str, default='', help='train, val, test')
     parser.add_argument('--det_name', type=str, default='', help='pointrcnn')
     args = parser.parse_args()
@@ -36,7 +36,7 @@ def main_per_cat(cfg, cat, log, ID_start):
 	total_time, total_frames = 0.0, 0
 	for seq_name in seq_eval:
 		seq_file = os.path.join(det_root, seq_name+'.txt')
-		seq_dets, flag = load_detection(seq_file) 				# load detection
+		seq_dets, flag = load_detection(seq_file, format=cfg.dataset, cat=cat) 				# load detection			
 		if not flag: continue									# no detection
 
 		# create folders for saving
@@ -59,7 +59,7 @@ def main_per_cat(cfg, cat, log, ID_start):
 			sys.stdout.flush()
 
 			# tracking by detection
-			dets_frame = get_frame_det(seq_dets, frame)
+			dets_frame = get_frame_det(seq_dets, frame, format=cfg.dataset)
 			since = time.time()
 			results, affi = tracker.track(dets_frame, frame, seq_name)		
 			total_time += time.time() - since

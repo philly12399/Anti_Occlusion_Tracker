@@ -38,7 +38,7 @@ def get_subfolder_seq(dataset, split):
 		if split == 'train': seq_eval = ['0000', '0002', '0003', '0004', '0005', '0007', '0009', '0011', '0017', '0020']         # train
 		if split == 'val':   seq_eval = ['0001', '0006', '0008', '0010', '0012', '0013', '0014', '0015', '0016', '0018', '0019']    # val
 		if split == 'test':  seq_eval  = ['%04d' % i for i in range(29)]
-		if split == 'val':   seq_eval = ['0001']
+		if split == 'val':   seq_eval = ['0004']
 		data_root = os.path.join(file_path, '../data/KITTI') 		# path containing the KITTI root 
 
 	elif dataset == 'nuScenes':			# nuScenes
@@ -53,7 +53,12 @@ def get_subfolder_seq(dataset, split):
 		if split == 'test':  seq_eval = get_split()[2]      # 150 scenes
 
 		data_root = os.path.join(file_path, '../data/nuScenes/nuKITTI') 	# path containing the nuScenes-converted KITTI root
-
+	elif dataset == 'Wayside':				# KITTI
+		det_id2str = { 1: 'Car', 2: 'Cyclist', 3: 'Car'}
+		hw = {'image': (375, 1242), 'lidar': (720, 1920)}
+		subfolder = 'val'
+		seq_eval = ['0004']
+		data_root = os.path.join(file_path, '../data/Wayside') 
 	else: assert False, 'error, %s dataset is not supported' % dataset
 		
 	return subfolder, det_id2str, hw, seq_eval, data_root
@@ -74,11 +79,12 @@ def get_threshold(dataset, det_name):
 			return {'Car': 0.269231, 'Pedestrian': 0.410000, 'Truck': 0.300000, 'Trailer': 0.372632, 
 					'Bus': 0.430000, 'Motorcycle': 0.368667, 'Bicycle': 0.394146}
 		else: assert False, 'error, detection method not supported for getting threshold' % det_name
+	elif dataset == 'Wayside':
+		return {'Car': 0,'Cyclist': 0}
 	else: assert False, 'error, dataset %s not supported for getting threshold' % dataset
 
 def initialize(cfg, data_root, save_dir, subfolder, seq_name, cat, ID_start, hw, log_file):
 	# initialize the tracker and provide all path of data needed
-
 	oxts_dir  = os.path.join(data_root, subfolder, 'oxts')
 	calib_dir = os.path.join(data_root, subfolder, 'calib')
 	image_dir = os.path.join(data_root, subfolder, 'image_02')

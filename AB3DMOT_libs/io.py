@@ -6,12 +6,22 @@ from xinshuo_io import mkdir_if_missing, load_txt_file, save_txt_file
 
 ################## loading
 
-def load_detection(file):
-
+def load_detection(file, format="",cat = ""):
 	# load from raw file
 	with warnings.catch_warnings():
 		warnings.simplefilter("ignore")
-		dets = np.loadtxt(file, delimiter=',') 	# load detections, N x 15
+		if(format=="Wayside"):
+			str2id = {'Car':1,'Cyclist':2,'Truck':1}			
+			dets1 = np.genfromtxt(file, delimiter=' ', dtype=float)
+			dets2 = np.genfromtxt(file, delimiter=' ', dtype=str)
+			l = []
+			for i in range(len(dets1)):
+				dets1[i][2] = str2id[dets2[i][2]]
+				if(dets1[i][2] == str2id[cat]):
+					l.append(dets1[i])
+			dets = np.array(l)
+		else:
+			dets = np.loadtxt(file, delimiter=',') 	# load detections, N x 15
 
 	if len(dets.shape) == 1: dets = np.expand_dims(dets, axis=0) 	
 	if dets.shape[1] == 0:		# if no detection in a sequence
@@ -19,18 +29,29 @@ def load_detection(file):
 	else:
 		return dets, True
 
-def get_frame_det(dets_all, frame):
-	
-	# get irrelevant information associated with an object, not used for associationg
-	ori_array = dets_all[dets_all[:, 0] == frame, -1].reshape((-1, 1))		# orientation
-	other_array = dets_all[dets_all[:, 0] == frame, 1:7] 					# other information, e.g, 2D box, ...
-	additional_info = np.concatenate((ori_array, other_array), axis=1)		
+def get_frame_det(dets_all, frame, format=""):
+	if(format=="Wayside"):
+		# get irrelevant information associated with an object, not used for associationg
+		matched_dets = dets_all[dets_all[:, 0] == frame , 0:]	
+		ori_array = matched_dets[:, 5].reshape((-1, 1))		# orientation
+		other_array = matched_dets[:, [2,6,7,8,9,-1]] # other information, e.g, 2D box, ...
+		additional_info = np.concatenate((ori_array, other_array), axis=1)		
+		# get 3D box
+		dets = matched_dets[:, [12,11,10,13,14,15,16]]		
+		dets_frame = {'dets': dets, 'info': additional_info}
+		return dets_frame
+	else:
+		# get irrelevant information associated with an object, not used for associationg
+		ori_array = dets_all[dets_all[:, 0] == frame, -1].reshape((-1, 1))		# orientation
+		other_array = dets_all[dets_all[:, 0] == frame, 1:7] 					# other information, e.g, 2D box, ...
 
-	# get 3D box
-	dets = dets_all[dets_all[:, 0] == frame, 7:14]		
+		additional_info = np.concatenate((ori_array, other_array), axis=1)		
 
-	dets_frame = {'dets': dets, 'info': additional_info}
-	return dets_frame
+		# get 3D box
+		dets = dets_all[dets_all[:, 0] == frame, 7:14]		
+
+		dets_frame = {'dets': dets, 'info': additional_info}
+		return dets_frame
 
 def load_highlight(file):
 	# load file with each line containing seq_id, frame_id, ID, error_type
