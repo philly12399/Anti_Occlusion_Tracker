@@ -85,7 +85,7 @@ def main_per_cat(cfg, cat, log, ID_start):
 				save_trk_file = open(save_trk_file, 'w')
 				for result_tmp in results[hypo]:				# N x 15
 					save_results(result_tmp, save_trk_file, eval_file_dict[hypo], \
-						det_id2str, frame, cfg.score_threshold)
+						det_id2str, frame, cfg.score_threshold, format=cfg.dataset)
 				save_trk_file.close()
 
 			total_frames += 1

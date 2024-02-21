@@ -15,7 +15,7 @@ def parse_args():
     args = parser.parse_args()
     return args
 
-def conf_thresholding(data_dir, save_dir, score_threshold, num_hypo):
+def conf_thresholding(data_dir, save_dir, thres_dict, num_hypo):
 	
 	# loop through all hypotheses
 	for hypo_index in range(num_hypo):
@@ -24,6 +24,7 @@ def conf_thresholding(data_dir, save_dir, score_threshold, num_hypo):
 		trk_id_score, cat_dict = dict(), dict()
 		eval_dir = os.path.join(data_dir, 'data_%d' % (hypo_index))
 		seq_list, num_seq = load_list_from_folder(eval_dir)
+
 		for seq_file in seq_list:
 
 			# loading tracklets in this sequence
@@ -48,6 +49,7 @@ def conf_thresholding(data_dir, save_dir, score_threshold, num_hypo):
 			obj_type = cat_dict[track_id]
 			if average_score < thres_dict[obj_type]:
 				to_delete_id.append(track_id)
+				
 
 		############# remove the ID in the data_0 folder
 		save_dir_tmp = os.path.join(save_dir, 'data_%d' % (hypo_index)); mkdir_if_missing(save_dir_tmp)
@@ -101,7 +103,6 @@ if __name__ == '__main__':
 	# get threshold for filtering
 	det_name = result_sha.split('_')[0]
 	thres_dict = get_threshold(args.dataset, det_name)
-
 	# get directories
 	file_path = os.path.dirname(os.path.realpath(__file__))
 	root_dir = os.path.join(file_path, '../../results', args.dataset)

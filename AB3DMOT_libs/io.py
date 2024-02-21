@@ -94,12 +94,16 @@ def get_saving_dir(eval_dir_dict, seq_name, save_dir, num_hypo):
 
 	return eval_file_dict, save_trk_dir, affinity_dir, affinity_vis
 
-def save_results(res, save_trk_file, eval_file, det_id2str, frame, score_threshold):
+def save_results(res, save_trk_file, eval_file, det_id2str, frame, score_threshold, format=""):
 
 	# box3d in the format of h, w, l, x, y, z, theta in camera coordinate
 	bbox3d_tmp, id_tmp, ori_tmp, type_tmp, bbox2d_tmp_trk, conf_tmp = \
 		res[0:7], res[7], res[8], det_id2str[res[9]], res[10:14], res[14] 		
-	 
+	if(format == "Wayside"):
+		tmp = bbox3d_tmp[0]
+		bbox3d_tmp[0] = bbox3d_tmp[2]
+		bbox3d_tmp[2] = tmp
+
 	# save in detection format with track ID, can be used for dection evaluation and tracking visualization
 	str_to_srite = '%s -1 -1 %f %f %f %f %f %f %f %f %f %f %f %f %f %d\n' % (type_tmp, ori_tmp,
 		bbox2d_tmp_trk[0], bbox2d_tmp_trk[1], bbox2d_tmp_trk[2], bbox2d_tmp_trk[3], 
