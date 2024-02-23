@@ -834,10 +834,10 @@ class trackingEvaluation(object):
                         last_id = -1
                         continue
                     lgt+=1
-                    if last_id != g[f] and last_id != -1 and g[f] != -1 and g[f-1] != -1:
+                    if last_id != g[f] and last_id != -1 and g[f] != -1:  #and  g[f-1] != -1:
                         tmpId_switches   += 1
                         self.id_switches += 1
-                    if f < len(g)-1 and g[f-1] != g[f] and last_id != -1 and g[f] != -1 and g[f+1] != -1:
+                    if f < len(g)-1 and g[f-1] != g[f] and last_id != -1 and g[f] != -1: #and g[f+1] != -1:
                         tmpFragments   += 1
                         self.fragments += 1
                     if g[f] != -1:
@@ -1260,7 +1260,7 @@ def main(gt_path, t_path, out_path, exp_name):
     result_sha = ""
     mail = mailpy.Mail("")
     eval_3diou, eval_2diou = True, False   
-    thres_list = [0.25,0.5]
+    thres_list = [0.25, 0.5]
     cls_list = ["car", "cyclist"]
     # cls_list = ["cyclist"]
     
