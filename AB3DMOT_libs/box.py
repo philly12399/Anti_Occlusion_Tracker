@@ -1,7 +1,7 @@
 import numpy as np
 from numba import jit
 from copy import deepcopy
-from .kitti_oxts import roty
+from .kitti_oxts import roty,rotz
 
 class Box3D:
     def __init__(self, x=None, y=None, z=None, h=None, w=None, l=None, ry=None, s=None):
@@ -14,7 +14,6 @@ class Box3D:
         self.ry = ry    # orientation
         self.s = s      # detection score
         self.corners_3d_cam = None
-
     def __str__(self):
         return 'x: {}, y: {}, z: {}, heading: {}, length: {}, width: {}, height: {}, score: {}'.format(
             self.x, self.y, self.z, self.ry, self.l, self.w, self.h, self.s)
@@ -58,7 +57,6 @@ class Box3D:
         if len(data) == 8:
             bbox.s = data[-1]
         return bbox
-    
     @classmethod
     def box2corners3d_camcoord(cls, bbox):
         ''' Takes an object's 3D box with the representation of [x,y,z,theta,l,w,h] and 
@@ -81,8 +79,9 @@ class Box3D:
             right x, down y, front z
 
             x -> w, z -> l, y -> h
-        '''
-
+        '''       
+        if(bbox.label_format == "Philly"):
+            return box2corners3d_lidarcoord(bbox)
         # if already computed before, then skip it
         if bbox.corners_3d_cam is not None:
             return bbox.corners_3d_cam
@@ -97,6 +96,7 @@ class Box3D:
         # 3d bounding box corners
         x_corners = [l/2,l/2,-l/2,-l/2,l/2,l/2,-l/2,-l/2];
         y_corners = [0,0,0,0,-h,-h,-h,-h];
+        #y_corners = [h/2,h/2,h/2,h/2,-h/2,-h/2,-h/2,-h/2];
         z_corners = [w/2,-w/2,-w/2,w/2,w/2,-w/2,-w/2,w/2];
 
         # rotate and translate 3d bounding box
@@ -106,5 +106,33 @@ class Box3D:
         corners_3d[2,:] = corners_3d[2,:] + bbox.z
         corners_3d = np.transpose(corners_3d)
         bbox.corners_3d_cam = corners_3d
-
+        
         return corners_3d
+    
+def box2corners3d_lidarcoord(bbox):
+    # if already computed before, then skip it
+    if bbox.corners_3d_cam is not None:
+        return bbox.corners_3d_cam
+
+    # compute rotational matrix around yaw axis
+    # -1.57 means straight, so there is a rotation here
+    R = rotz(bbox.ry)   
+
+    # 3d bounding box dimensions
+    l, w, h = bbox.l, bbox.w, bbox.h
+
+    # 3d bounding box corners
+    x_corners = [l/2,l/2,-l/2,-l/2,l/2,l/2,-l/2,-l/2];
+    z_corners = [0,0,0,0,-h,-h,-h,-h]; 
+    # z_corners = [h/2,h/2,h/2,h/2,-h/2,-h/2,-h/2,-h/2]; 
+    y_corners = [w/2,-w/2,-w/2,w/2,w/2,-w/2,-w/2,w/2];
+
+    # rotate and translate 3d bounding box
+    corners_3d = np.dot(R, np.vstack([x_corners, y_corners, z_corners]))
+    corners_3d[0,:] = corners_3d[0,:] + bbox.x
+    corners_3d[1,:] = corners_3d[1,:] + bbox.y
+    corners_3d[2,:] = corners_3d[2,:] + bbox.z    
+    corners_3d = np.transpose(corners_3d[[0,2,1],:])
+    bbox.corners_3d_cam = corners_3d
+
+    return corners_3d

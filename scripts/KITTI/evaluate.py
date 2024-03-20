@@ -23,7 +23,7 @@ class tData:
     """
     def __init__(self,frame=-1,obj_type="unset",truncation=-1,occlusion=-1,\
                  obs_angle=-10,x1=-1,y1=-1,x2=-1,y2=-1,w=-1,h=-1,l=-1,\
-                 x=-1000,y=-1000,z=-1000,ry=-10,score=-1000,track_id=-1):
+                 x=-1000,y=-1000,z=-1000,ry=-10,score=-1000,track_id=-1, label_format="kitti"):
         """
             Constructor, initializes the object given the parameters.
         """
@@ -50,7 +50,8 @@ class tData:
         self.ignored    = False
         self.valid      = False
         self.tracker    = -1
-
+        self.label_format = label_format
+        
     def __str__(self):
         """
             Print read data.
@@ -110,7 +111,7 @@ class trackingEvaluation(object):
     """
 
     def __init__(self, t_sha, gt_path="./scripts/KITTI", t_path ="./results/KITTI" , max_truncation = 0, min_height = 0, max_occlusion = 4, \
-        mail=None, cls="car", eval_3diou=True, eval_2diou=False, num_hypo=1, thres=None):
+        mail=None, cls="car", eval_3diou=True, eval_2diou=False, num_hypo=1, thres=None, label_format_list = None):
         # get number of sequences and
         # get number of frames per sequence from test mapping
         # (created while extracting the benchmark)
@@ -135,7 +136,7 @@ class trackingEvaluation(object):
         self.gt_path           = os.path.join(gt_path, "label")
         self.t_sha             = t_sha
         self.t_path            = os.path.join(t_path, "label")
-        
+        self.label_format_list = label_format_list
         # statistics and numbers for evaluation
         self.n_gt              = 0 # number of ground truth detections minus ignored false negatives and true positives
         self.n_igt             = 0 # number of ignored ground truth detections
@@ -209,7 +210,7 @@ class trackingEvaluation(object):
         """
         
         try:
-            self._loadData(self.gt_path, cls=self.cls, loading_groundtruth=True)
+            self._loadData(self.gt_path, cls=self.cls, loading_groundtruth=True, label_format = self.label_format_list[0])
         except IOError:
             return False
         return True
@@ -220,20 +221,20 @@ class trackingEvaluation(object):
         """
         
         try:
-            if not self._loadData(self.t_path, cls=self.cls, loading_groundtruth=False):
+            if not self._loadData(self.t_path, cls=self.cls, loading_groundtruth=False, label_format = self.label_format_list[1]):
                 return False
         except IOError:
             return False
         return True
 
-    def _loadData(self, root_dir, cls, min_score=-1000, loading_groundtruth=False):
+    def _loadData(self, root_dir, cls, min_score=-1000, loading_groundtruth=False, label_format = None):
         """
             Generic loader for ground truth and tracking data.
             Use loadGroundtruth() or loadTracker() to load this data.
             Loads detections in KITTI format from textfiles.
         """
         # construct objectDetections object to hold detection data
-        t_data  = tData()
+        t_data  = tData(label_format = label_format)
         data    = []
         eval_2d = True
         eval_3d = True
@@ -1126,7 +1127,7 @@ class stat:
         self.plot_over_recall(self.fn_list, 'False Negative - Recall Curve', 'False Negative', os.path.join(save_dir, 'FN_recall_curve_%s_%s.pdf' % (self.cls, self.suffix)))
         self.plot_over_recall(self.precision_list, 'Precision - Recall Curve', 'Precision', os.path.join(save_dir, 'precision_recall_curve_%s_%s.pdf' % (self.cls, self.suffix)))
 
-def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path,out_path, max_occlusion = 4, cls_list=["car", "cyclist"]):
+def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path,out_path, max_occlusion = 4, cls_list=["car", "cyclist"], label_format_list = ["kitti","kitti"]):
     """
         Entry point for evaluation, will load the data and start evaluation for
         CAR and PEDESTRIAN if available.
@@ -1140,7 +1141,7 @@ def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path
         assert False, 'error'
     classes = []
     for c in cls_list: # 
-        e = trackingEvaluation(t_sha=result_sha,gt_path=gt_path,t_path=t_path,mail=mail,cls=c,eval_3diou=eval_3diou,eval_2diou=eval_2diou,num_hypo=num_hypo,thres=thres, max_occlusion = max_occlusion)
+        e = trackingEvaluation(t_sha=result_sha,gt_path=gt_path,t_path=t_path,mail=mail,cls=c,eval_3diou=eval_3diou,eval_2diou=eval_2diou,num_hypo=num_hypo,thres=thres, max_occlusion = max_occlusion, label_format_list = label_format_list)
         # load tracker data and check provided classes
         try:
             if not e.loadTracker():
@@ -1255,17 +1256,19 @@ def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path
     # required=True,
     help="exp name.",
 )
+
 def main(gt_path, t_path, out_path, exp_name):
     # evaluate results
+    # Settings
     result_sha = ""
     mail = mailpy.Mail("")
     eval_3diou, eval_2diou = True, False   
     thres_list = [0.25, 0.5]
     cls_list = ["car", "cyclist"]
-    # cls_list = ["cyclist"]
-    
+    label_format_list = ["Philly","Philly"] #[GT format,Track format]
     num_hypo = 1
     max_occlusion = 4
+    
     timestr=datetime.now().strftime("%Y-%m-%dT%H:%M:%S") 
     
     for thres in thres_list:
@@ -1276,7 +1279,7 @@ def main(gt_path, t_path, out_path, exp_name):
         msg=f"gt_path: {gt_path}\nt_path:{t_path}\nthreshold:{thres}, num_hypo:{num_hypo}\neval_3diou:{eval_3diou}, eval_2diou:{eval_2diou}, max_occlusion:{max_occlusion}"
         f.write(msg)
         f.close()        
-        success = evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path,new_out_path, max_occlusion = max_occlusion, cls_list = cls_list)
+        success = evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path,new_out_path, max_occlusion = max_occlusion, cls_list = cls_list, label_format_list = label_format_list)
 #########################################################################
 # entry point of evaluation script
 # input:
