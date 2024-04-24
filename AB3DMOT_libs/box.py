@@ -4,7 +4,7 @@ from copy import deepcopy
 from .kitti_oxts import roty,rotz
 
 class Box3D:
-    def __init__(self, x=None, y=None, z=None, h=None, w=None, l=None, ry=None, s=None):
+    def __init__(self, x=None, y=None, z=None, h=None, w=None, l=None, ry=None, s=None, label_format=None):
         self.x = x      # center x
         self.y = y      # center y
         self.z = z      # center z
@@ -13,6 +13,7 @@ class Box3D:
         self.l = l      # length
         self.ry = ry    # orientation
         self.s = s      # detection score
+        self.label_format = label_format
         self.corners_3d_cam = None
     def __str__(self):
         return 'x: {}, y: {}, z: {}, heading: {}, length: {}, width: {}, height: {}, score: {}'.format(
@@ -39,20 +40,19 @@ class Box3D:
             return np.array([bbox.h, bbox.w, bbox.l, bbox.x, bbox.y, bbox.z, bbox.ry, bbox.s])
 
     @classmethod
-    def array2bbox_raw(cls, data):
+    def array2bbox_raw(cls, data, label_format=None):
         # take the format of data of [h,w,l,x,y,z,theta]
-
-        bbox = Box3D()
+        bbox = Box3D(label_format=label_format)
         bbox.h, bbox.w, bbox.l, bbox.x, bbox.y, bbox.z, bbox.ry = data[:7]
         if len(data) == 8:
             bbox.s = data[-1]
         return bbox
     
     @classmethod
-    def array2bbox(cls, data):
+    def array2bbox(cls, data, label_format=None):
         # take the format of data of [x,y,z,theta,l,w,h]
 
-        bbox = Box3D()
+        bbox = Box3D(label_format=label_format)
         bbox.x, bbox.y, bbox.z, bbox.ry, bbox.l, bbox.w, bbox.h = data[:7]
         if len(data) == 8:
             bbox.s = data[-1]

@@ -45,10 +45,11 @@ def main_per_cat(cfg, cat, log, ID_start):
 
 		# initialize tracker
 		tracker, frame_list = initialize(cfg, trk_root, save_dir, subfolder, seq_name, cat, ID_start, hw, log)
-
 		# loop over frame
 		min_frame, max_frame = int(frame_list[0]), int(frame_list[-1])
 		for frame in range(min_frame, max_frame + 1):
+			if(frame>10):
+				break
 			# add an additional frame here to deal with the case that the last frame, although no detection
 			# but should output an N x 0 affinity for consistency
 			

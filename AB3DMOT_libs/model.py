@@ -36,7 +36,9 @@ class AB3DMOT(object):
 		self.affi_process = cfg.affi_pro	# post-processing affinity
 		self.get_param(cfg, cat)
 		self.print_param()
-
+		self.label_format = None
+		if('label_format' in cfg):
+			self.label_format = cfg.label_format
 		# debug
 		# self.debug_id = 2
 		self.debug_id = None
@@ -123,7 +125,7 @@ class AB3DMOT(object):
 		dets_new = []
 
 		for det in dets:
-			det_tmp = Box3D.array2bbox_raw(det)
+			det_tmp = Box3D.array2bbox_raw(det,self.label_format)
 			dets_new.append(det_tmp)
 		return dets_new
 
@@ -228,7 +230,7 @@ class AB3DMOT(object):
 			# update statistics
 			kf_tmp.time_since_update += 1 		
 			trk_tmp = kf_tmp.kf.x.reshape((-1))[:7]
-			trks.append(Box3D.array2bbox(trk_tmp))
+			trks.append(Box3D.array2bbox(trk_tmp,self.label_format))
 
 		return trks
 
@@ -298,7 +300,7 @@ class AB3DMOT(object):
 		results = []
 		for trk in reversed(self.trackers):
 			# change format from [x,y,z,theta,l,w,h] to [h,w,l,x,y,z,theta]
-			d = Box3D.array2bbox(trk.kf.x[:7].reshape((7, )))     # bbox location self
+			d = Box3D.array2bbox(trk.kf.x[:7].reshape((7, )),self.label_format)     # bbox location self
 			d = Box3D.bbox2array_raw(d)
 
 			if ((trk.time_since_update < self.max_age) and (trk.hits >= self.min_hits or self.frame_count <= self.min_hits)):      

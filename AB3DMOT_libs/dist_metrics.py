@@ -129,7 +129,6 @@ def convex_area(boxa_bottom, boxb_bottom):
 
 # distance metric
 
-
 def iou(box_a, box_b, metric='giou_3d'):
     ''' Compute 3D/2D bounding box IoU, only working for object parallel to ground
 
