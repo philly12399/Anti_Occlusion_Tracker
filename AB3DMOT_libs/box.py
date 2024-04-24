@@ -38,21 +38,25 @@ class Box3D:
             return np.array([bbox.h, bbox.w, bbox.l, bbox.x, bbox.y, bbox.z, bbox.ry])
         else:
             return np.array([bbox.h, bbox.w, bbox.l, bbox.x, bbox.y, bbox.z, bbox.ry, bbox.s])
-
+        
     @classmethod
-    def array2bbox_raw(cls, data, label_format=None):
+    def set_label_format(cls, label_format):
+        cls.label_format = label_format
+        
+    @classmethod
+    def array2bbox_raw(cls, data):
         # take the format of data of [h,w,l,x,y,z,theta]
-        bbox = Box3D(label_format=label_format)
+        bbox = Box3D(label_format=cls.label_format)
         bbox.h, bbox.w, bbox.l, bbox.x, bbox.y, bbox.z, bbox.ry = data[:7]
         if len(data) == 8:
             bbox.s = data[-1]
         return bbox
     
     @classmethod
-    def array2bbox(cls, data, label_format=None):
+    def array2bbox(cls, data):
         # take the format of data of [x,y,z,theta,l,w,h]
 
-        bbox = Box3D(label_format=label_format)
+        bbox = Box3D(label_format=cls.label_format)
         bbox.x, bbox.y, bbox.z, bbox.ry, bbox.l, bbox.w, bbox.h = data[:7]
         if len(data) == 8:
             bbox.s = data[-1]
@@ -80,7 +84,7 @@ class Box3D:
 
             x -> w, z -> l, y -> h
         '''       
-        if(bbox.label_format == "Philly"):
+        if(bbox.label_format == "Wayside"):
             return box2corners3d_lidarcoord(bbox)
         # if already computed before, then skip it
         if bbox.corners_3d_cam is not None:

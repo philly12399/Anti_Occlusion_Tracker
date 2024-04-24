@@ -15,14 +15,21 @@ def parse_args():
     parser.add_argument('--dataset', type=str, default='nuScenes', help='KITTI, nuScenes, Wayside')
     parser.add_argument('--split', type=str, default='', help='train, val, test')
     parser.add_argument('--det_name', type=str, default='', help='pointrcnn')
+    parser.add_argument('--frame', type=int, default=-1, help='frame num')
+    
     args = parser.parse_args()
     return args
 
-def main_per_cat(cfg, cat, log, ID_start):
+def main_per_cat(cfg, cat, log, ID_start, frame_num):
 
 	# get data-cat-split specific path
-	result_sha = '%s_%s_%s' % (cfg.det_name, cat, cfg.split)
+	result_sha = '%s_%s_%s' % (cfg.det_name, 'all', cfg.split)
 	det_root = os.path.join('./data', cfg.dataset, 'detection', result_sha)
+	if(os.path.exists(det_root) == False):
+		result_sha = '%s_%s_%s' % (cfg.det_name, cat, cfg.split)
+		det_root = os.path.join('./data', cfg.dataset, 'detection', result_sha)
+	if('pcd_db_root' in cfg):
+		pcd_db_root = cfg.pcd_db_root
 	subfolder, det_id2str, hw, seq_eval, data_root = get_subfolder_seq(cfg.dataset, cfg.split)
 	trk_root = os.path.join(data_root, 'tracking')
 	save_dir = os.path.join(cfg.save_root, result_sha + '_H%d' % cfg.num_hypo); mkdir_if_missing(save_dir)
@@ -48,7 +55,7 @@ def main_per_cat(cfg, cat, log, ID_start):
 		# loop over frame
 		min_frame, max_frame = int(frame_list[0]), int(frame_list[-1])
 		for frame in range(min_frame, max_frame + 1):
-			if(frame>10):
+			if(frame >= frame_num and args.frame!=-1):
 				break
 			# add an additional frame here to deal with the case that the last frame, although no detection
 			# but should output an N x 0 affinity for consistency
@@ -126,7 +133,7 @@ def main(args):
 
 	# run tracking for each category
 	for cat in cfg.cat_list:
-		ID_start = main_per_cat(cfg, cat, log, ID_start)
+		ID_start = main_per_cat(cfg, cat, log, ID_start, args.frame)
 
 	# combine results for every category
 	print_log('\ncombining results......', log=log)
