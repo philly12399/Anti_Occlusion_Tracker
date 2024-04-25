@@ -9,7 +9,7 @@ from AB3DMOT_libs.io import load_detection, get_saving_dir, get_frame_det, save_
 from scripts.post_processing.combine_trk_cat import combine_trk_cat
 from xinshuo_io import mkdir_if_missing, save_txt_file
 from xinshuo_miscellaneous import get_timestring, print_log
-
+import pickle
 def parse_args():
     parser = argparse.ArgumentParser(description='AB3DMOT')
     parser.add_argument('--dataset', type=str, default='nuScenes', help='KITTI, nuScenes, Wayside')
@@ -21,15 +21,25 @@ def parse_args():
     return args
 
 def main_per_cat(cfg, cat, log, ID_start, frame_num):
-
 	# get data-cat-split specific path
-	result_sha = '%s_%s_%s' % (cfg.det_name, 'all', cfg.split)
-	det_root = os.path.join('./data', cfg.dataset, 'detection', result_sha)
+	
+	all_sha = '%s_%s_%s' % (cfg.det_name, 'all', cfg.split)
+	result_sha = '%s_%s_%s' % (cfg.det_name, cat, cfg.split)
+	det_root = os.path.join('./data', cfg.dataset, 'detection', all_sha)
 	if(os.path.exists(det_root) == False):
-		result_sha = '%s_%s_%s' % (cfg.det_name, cat, cfg.split)
 		det_root = os.path.join('./data', cfg.dataset, 'detection', result_sha)
+  
+	##PCD INFO
 	if('pcd_db_root' in cfg):
 		pcd_db_root = cfg.pcd_db_root
+		with open(os.path.join(pcd_db_root, 'info.pkl'), 'rb') as file:
+			pcd_info = pickle.load(file) 
+		pcd_db = os.path.join(pcd_db_root, 'gt_database')
+	##CLASS MAP
+	class_map = {}
+	if('class_map' in cfg):
+		class_map = cfg.class_map	
+  
 	subfolder, det_id2str, hw, seq_eval, data_root = get_subfolder_seq(cfg.dataset, cfg.split)
 	trk_root = os.path.join(data_root, 'tracking')
 	save_dir = os.path.join(cfg.save_root, result_sha + '_H%d' % cfg.num_hypo); mkdir_if_missing(save_dir)
@@ -43,17 +53,31 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num):
 	total_time, total_frames = 0.0, 0
 	for seq_name in seq_eval:
 		seq_file = os.path.join(det_root, seq_name+'.txt')
-		seq_dets, flag = load_detection(seq_file, format=cfg.dataset, cat=cat) 				# load detection			
+		seq_dets, flag = load_detection(seq_file, format=cfg.dataset, cat=cat, cls_map = class_map) 	# load detection
 		if not flag: continue									# no detection
 
 		# create folders for saving
 		eval_file_dict, save_trk_dir, affinity_dir, affinity_vis = \
 			get_saving_dir(eval_dir_dict, seq_name, save_dir, cfg.num_hypo)	
-
 		# initialize tracker
 		tracker, frame_list = initialize(cfg, trk_root, save_dir, subfolder, seq_name, cat, ID_start, hw, log)
 		# loop over frame
 		min_frame, max_frame = int(frame_list[0]), int(frame_list[-1])
+  
+		##Pcd info
+		pcd_db_seq_root = os.path.join(pcd_db, seq_name)
+		pcd_info_seq=[[] for i in range(min_frame, max_frame + 1)]
+		for pp in pcd_info[seq_name]:
+			#print(pp['obj']['frame_id'],pp['obj_det_idx'])
+			if(pp['obj']['obj_type'] in class_map):
+				pp['obj']['obj_type'] = class_map[pp['obj']['obj_type']]
+			real_idx = pp['obj_det_idx']
+			frame_seq = pcd_info_seq[pp['obj']['frame_id']-min_frame]
+			##Put info to correspond frame, some pcd is not consequence, so pad with None
+			while(real_idx>len(frame_seq)):
+				frame_seq.append(None)
+			frame_seq.append(pp)
+
 		for frame in range(min_frame, max_frame + 1):
 			if(frame >= frame_num and args.frame!=-1):
 				break

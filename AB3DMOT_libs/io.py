@@ -6,16 +6,18 @@ from xinshuo_io import mkdir_if_missing, load_txt_file, save_txt_file
 
 ################## loading
 
-def load_detection(file, format="",cat = ""):
+def load_detection(file, format="",cat = "",cls_map = {}):
 	# load from raw file
 	with warnings.catch_warnings():
 		warnings.simplefilter("ignore")
 		if(format=="Wayside"):
-			str2id = {'Car':1,'Cyclist':2,'Truck':1}			
-			dets1 = np.genfromtxt(file, delimiter=' ', dtype=float)
-			dets2 = np.genfromtxt(file, delimiter=' ', dtype=str)
+			str2id = {'Car':1,'Cyclist':2}			
+			dets1 = np.genfromtxt(file, delimiter=' ', dtype=float) #for label
+			dets2 = np.genfromtxt(file, delimiter=' ', dtype=str) #for class only
 			l = []
 			for i in range(len(dets1)):
+				if(dets2[i][2] in cls_map): #truck to car
+					dets2[i][2] = cls_map[dets2[i][2]]	     				
 				dets1[i][2] = str2id[dets2[i][2]]
 				if(dets1[i][2] == str2id[cat]):
 					l.append(dets1[i])

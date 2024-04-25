@@ -18,4 +18,5 @@
     affi_pro                     : true
     #---------------- addition
     label_format                 : Wayside      # Kitti, Waymo, nuscenes
-    pcd_db_root                  : ./data/Wayside/pcd_db/
+    pcd_db_root                  : ./data/Wayside/pcd_db/mark_detection_to_ab3dmot/ 
+    class_map                    : {"Truck": "Car"}

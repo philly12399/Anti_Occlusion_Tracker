@@ -6,7 +6,7 @@ from AB3DMOT_libs.box import Box3D
 from AB3DMOT_libs.matching import data_association
 from AB3DMOT_libs.kalman_filter import KF
 from AB3DMOT_libs.vis import vis_obj
-from AB3DMOT_libs.TrackBuffer import TrackBuffer
+from AB3DMOT_libs.TrackBuffer import TrackBuffer 
 from xinshuo_miscellaneous import print_log
 from xinshuo_io import mkdir_if_missing
 
@@ -24,7 +24,7 @@ class AB3DMOT(object):
 		self.log = log
 
 		# counter
-		self.track_buffer = TrackBuffer()
+		self.track_buf = []
 		self.frame_count = 0
 		self.ID_count = [ID_init]
 		self.id_now_output = []
@@ -162,9 +162,9 @@ class AB3DMOT(object):
 		# inverse ego motion compensation, move trks from the last frame of coordinate to the current frame for matching
 		
 		from AB3DMOT_libs.kitti_oxts import get_ego_traj, egomotion_compensation_ID
-		assert len(self.track_buffer.kf) == len(trks), 'error'
+		assert len(self.track_buf) == len(trks), 'error'
 		ego_xyz_imu, ego_rot_imu, left, right = get_ego_traj(self.oxts, frame, 1, 1, only_fut=True, inverse=True) 
-		for index in range(len(self.track_buffer.kf)):
+		for index in range(len(self.track_buf)):
 			trk_tmp = trks[index]
 			xyz = np.array([trk_tmp.x, trk_tmp.y, trk_tmp.z]).reshape((1, -1))
 			compensated = egomotion_compensation_ID(xyz, self.calib, ego_rot_imu, ego_xyz_imu, left, right)
@@ -172,9 +172,9 @@ class AB3DMOT(object):
 
 			# update compensated state in the Kalman filter
 			try:
-				self.track_buffer.kf[index].kf.x[:3] = copy.copy(compensated).reshape((-1))
+				self.track_buf[index].kf.x[:3] = copy.copy(compensated).reshape((-1))
 			except:
-				self.track_buffer.kf[index].kf.x[:3] = copy.copy(compensated).reshape((-1, 1))
+				self.track_buf[index].kf.x[:3] = copy.copy(compensated).reshape((-1, 1))
 
 		return trks
 
@@ -197,7 +197,7 @@ class AB3DMOT(object):
 		
 		# visualize color-specific tracks
 		count = 0
-		ID_list = [tmp.id for tmp in self.track_buffer.kf]
+		ID_list = [tmp.id for tmp in self.track_buf]
 		for trk_tmp in trks: 
 			ID_tmp = ID_list[count]
 			color_float = colors[int(ID_tmp) % max_color]
@@ -214,24 +214,24 @@ class AB3DMOT(object):
 		# get predicted locations from existing tracks
 
 		trks = []
-		for t in range(len(self.track_buffer.kf)):
+		for t in range(len(self.track_buf)):
 			
 			# propagate locations
-			kf_tmp = self.track_buffer.kf[t]
-			if kf_tmp.id == self.debug_id:
+			trk_tmp = self.track_buf[t]
+			if trk_tmp.id == self.debug_id:
 				print('\n before prediction')
-				print(kf_tmp.kf.x.reshape((-1)))
+				print(trk_tmp.kf.x.reshape((-1)))
 				print('\n current velocity')
-				print(kf_tmp.get_velocity())
-			kf_tmp.kf.predict()
-			if kf_tmp.id == self.debug_id:
+				print(trk_tmp.get_velocity())
+			trk_tmp.kf.predict()
+			if trk_tmp.id == self.debug_id:
 				print('After prediction')
-				print(kf_tmp.kf.x.reshape((-1)))
-			kf_tmp.kf.x[3] = self.within_range(kf_tmp.kf.x[3])
+				print(trk_tmp.kf.x.reshape((-1)))
+			trk_tmp.kf.x[3] = self.within_range(trk_tmp.kf.x[3])
 
 			# update statistics
-			kf_tmp.time_since_update += 1 		
-			trk_tmp = kf_tmp.kf.x.reshape((-1))[:7]
+			trk_tmp.time_since_update += 1 		
+			trk_tmp = trk_tmp.kf.x.reshape((-1))[:7]
 			trks.append(Box3D.array2bbox(trk_tmp))
 
 		return trks
@@ -240,7 +240,7 @@ class AB3DMOT(object):
 		# update matched trackers with assigned detections
 		
 		dets = copy.copy(dets)
-		for t, trk in enumerate(self.track_buffer.kf):
+		for t, trk in enumerate(self.track_buf):
 			if t not in unmatched_trks:
 				d = matched[np.where(matched[:, 1] == t)[0], 0]     # a list of index
 				assert len(d) == 1, 'error'
@@ -285,11 +285,10 @@ class AB3DMOT(object):
 		# dets = copy.copy(dets)
 		new_id_list = list()					# new ID generated for unmatched detections
 		for i in unmatched_dets:        			# a scalar of index
-			trk = KF(Box3D.bbox2array(dets[i]), info[i, :], self.ID_count[0])
-			self.track_buffer.kf.append(trk)
+			trk = TrackBuffer(Box3D.bbox2array(dets[i]), info[i, :], self.ID_count[0])
+			self.track_buf.append(trk)
 			new_id_list.append(trk.id)
 			# print('track ID %s has been initialized due to new detection' % trk.id)
-
 			self.ID_count[0] += 1
 
 		return new_id_list
@@ -298,9 +297,9 @@ class AB3DMOT(object):
 		# output exiting tracks that have been stably associated, i.e., >= min_hits
 		# and also delete tracks that have appeared for a long time, i.e., >= max_age
 
-		num_trks = len(self.track_buffer.kf)
+		num_trks = len(self.track_buf)
 		results = []
-		for trk in reversed(self.track_buffer.kf):
+		for trk in reversed(self.track_buf):
 			# change format from [x,y,z,theta,l,w,h] to [h,w,l,x,y,z,theta]
 			d = Box3D.array2bbox(trk.kf.x[:7].reshape((7, )))     # bbox location self
 			d = Box3D.bbox2array_raw(d)
@@ -311,7 +310,7 @@ class AB3DMOT(object):
 
 			# deadth, remove dead tracklet
 			if (trk.time_since_update >= self.max_age): 
-				self.track_buffer.kf.pop(num_trks)
+				self.track_buf.pop(num_trks)
 
 		return results
 
@@ -409,7 +408,7 @@ class AB3DMOT(object):
 
 		# recall the last frames of outputs for computing ID correspondences during affinity processing
 		self.id_past_output = copy.copy(self.id_now_output)
-		self.id_past = [trk.id for trk in self.track_buffer.kf]
+		self.id_past = [trk.id for trk in self.track_buf]
 		# process detection format
   
 		dets = self.process_dets(dets)
@@ -429,7 +428,7 @@ class AB3DMOT(object):
 		# matching
 		trk_innovation_matrix = None
 		if self.metric == 'm_dis':
-			trk_innovation_matrix = [trk.compute_innovation_matrix() for trk in self.track_buffer.kf] 
+			trk_innovation_matrix = [trk.kf.compute_innovation_matrix() for trk in self.track_buf] 
 		matched, unmatched_dets, unmatched_trks, cost, affi = \
 			data_association(dets, trks, self.metric, self.thres, self.algm, trk_innovation_matrix)
 		# print_log('detections are', log=self.log, display=False)
