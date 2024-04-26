@@ -6,7 +6,7 @@ from AB3DMOT_libs.box import Box3D
 from AB3DMOT_libs.matching import data_association
 from AB3DMOT_libs.kalman_filter import KF
 from AB3DMOT_libs.vis import vis_obj
-from AB3DMOT_libs.TrackBuffer import TrackBuffer 
+from AB3DMOT_libs.TrackBuffer import TrackBuffer , KF_predict
 from xinshuo_miscellaneous import print_log
 from xinshuo_io import mkdir_if_missing
 
@@ -40,6 +40,11 @@ class AB3DMOT(object):
 		self.label_format = None
 		if('label_format' in cfg):
 			self.label_format = cfg.label_format
+   
+		self.buffer_size = 30
+		if('buffer_size' in cfg):
+			self.buffer_size = cfg.buffer_size
+   
 		Box3D.set_label_format(self.label_format)
 		# debug
 		# self.debug_id = 2
@@ -125,7 +130,6 @@ class AB3DMOT(object):
 		# 	dets - a numpy array of detections in the format [[h,w,l,x,y,z,theta],...]
 
 		dets_new = []
-
 		for det in dets:
 			det_tmp = Box3D.array2bbox_raw(det)
 			dets_new.append(det_tmp)
@@ -213,32 +217,32 @@ class AB3DMOT(object):
 	def prediction(self):
 		# get predicted locations from existing tracks
 
-		trks = []
+		pred = []
 		for t in range(len(self.track_buf)):
-			
 			# propagate locations
-			trk_tmp = self.track_buf[t]
-			if trk_tmp.id == self.debug_id:
+			
+			trk = self.track_buf[t]
+			new_kf = KF_predict(trk.kf,1)
+
+			if trk.id == self.debug_id:
 				print('\n before prediction')
-				print(trk_tmp.kf.x.reshape((-1)))
+				print(trk.kf.x.reshape((-1)))
 				print('\n current velocity')
-				print(trk_tmp.get_velocity())
-			trk_tmp.kf.predict()
-			if trk_tmp.id == self.debug_id:
+				print(trk.get_velocity())
+	
+			if trk.id == self.debug_id:
 				print('After prediction')
-				print(trk_tmp.kf.x.reshape((-1)))
-			trk_tmp.kf.x[3] = self.within_range(trk_tmp.kf.x[3])
-
+				print(new_kf.x.reshape((-1)))
+			
+			new_kf.x[3] = self.within_range(new_kf.x[3])
+			trk.kf = new_kf
 			# update statistics
-			trk_tmp.time_since_update += 1 		
-			trk_tmp = trk_tmp.kf.x.reshape((-1))[:7]
-			trks.append(Box3D.array2bbox(trk_tmp))
+			trk.time_since_update += 1 		
+			pred.append(Box3D.array2bbox(new_kf.x.reshape((-1))[:7]))
+		return pred
 
-		return trks
-
-	def update(self, matched, unmatched_trks, dets, info):
+	def update(self, matched, unmatched_trks, dets, info, pcd, frame):
 		# update matched trackers with assigned detections
-		
 		dets = copy.copy(dets)
 		for t, trk in enumerate(self.track_buf):
 			if t not in unmatched_trks:
@@ -274,18 +278,21 @@ class AB3DMOT(object):
 
 				trk.kf.x[3] = self.within_range(trk.kf.x[3])
 				trk.info = info[d, :][0]
-
+				trk.update_buffer(bbox3d, pcd[d[0]], frame)
+			else:
+				trk.match = False
 			# debug use only
 			# else:
 				# print('track ID %d is not matched' % trk.id)
 
-	def birth(self, dets, info, unmatched_dets):
+	def birth(self, dets, info, unmatched_dets, pcd , frame):
 		# create and initialise new trackers for unmatched detections
-
 		# dets = copy.copy(dets)
+		assert len(dets) == len(pcd)
 		new_id_list = list()					# new ID generated for unmatched detections
 		for i in unmatched_dets:        			# a scalar of index
-			trk = TrackBuffer(Box3D.bbox2array(dets[i]), info[i, :], self.ID_count[0])
+			bbox3d = Box3D.bbox2array(dets[i])
+			trk = TrackBuffer(info[i, :], self.ID_count[0], bbox3d, pcd[i], frame, self.buffer_size)
 			self.track_buf.append(trk)
 			new_id_list.append(trk.id)
 			# print('track ID %s has been initialized due to new detection' % trk.id)
@@ -293,19 +300,22 @@ class AB3DMOT(object):
 
 		return new_id_list
 
-	def output(self):
+	def output(self): #death
 		# output exiting tracks that have been stably associated, i.e., >= min_hits
 		# and also delete tracks that have appeared for a long time, i.e., >= max_age
-
 		num_trks = len(self.track_buf)
 		results = []
 		for trk in reversed(self.track_buf):
 			# change format from [x,y,z,theta,l,w,h] to [h,w,l,x,y,z,theta]
-			d = Box3D.array2bbox(trk.kf.x[:7].reshape((7, )))     # bbox location self
+			if(trk.match ==False): #unmatch就用kf的
+				d = Box3D.array2bbox(trk.kf.x[:7].reshape((7, ))) 
+			else:#match 就用det
+				d = Box3D.array2bbox(trk.bbox[-1])     # bbox location self
 			d = Box3D.bbox2array_raw(d)
-
+			
 			if ((trk.time_since_update < self.max_age) and (trk.hits >= self.min_hits or self.frame_count <= self.min_hits)):      
-				results.append(np.concatenate((d, [trk.id], trk.info)).reshape(1, -1)) 		
+				if(trk.match ==True):
+					results.append(np.concatenate((d, [trk.id], trk.info)).reshape(1, -1)) 		
 			num_trks -= 1
 
 			# deadth, remove dead tracklet
@@ -386,7 +396,8 @@ class AB3DMOT(object):
 
 		return affi
 
-	def track(self, dets_all, frame, seq_name):
+	def track(self, dets_all, frame, seq_name, pcd_info, pcd):
+		
 		"""
 		Params:
 		  	dets_all: dict
@@ -398,8 +409,10 @@ class AB3DMOT(object):
 
 		NOTE: The number of objects returned may differ from the number of detections provided.
 		"""
-		dets, info = dets_all['dets'], dets_all['info']         # dets: N x 7, float numpy array
+		
 
+		dets, info = dets_all['dets'], dets_all['info']         # dets: N x 7, float numpy array
+	
 		if self.debug_id: print('\nframe is %s' % frame)
 		# logging
 		print_str = '\n\n*****************************************\n\nprocessing seq_name/frame %s/%d' % (seq_name, frame)
@@ -410,20 +423,21 @@ class AB3DMOT(object):
 		self.id_past_output = copy.copy(self.id_now_output)
 		self.id_past = [trk.id for trk in self.track_buf]
 		# process detection format
-  
+
 		dets = self.process_dets(dets)
 		# tracks propagation based on velocity
 		trks = self.prediction()
 
-		# ego motion compensation, adapt to the current frame of camera coordinate
-		if (frame > 0) and (self.ego_com) and (self.oxts is not None):
-			trks = self.ego_motion_compensation(frame, trks)
+		## Comment for wayside
+		# # ego motion compensation, adapt to the current frame of camera coordinate
+		# if (frame > 0) and (self.ego_com) and (self.oxts is not None):
+		# 	trks = self.ego_motion_compensation(frame, trks)
 
-		# visualization
-		if self.vis and (self.vis_dir is not None):
-			img = os.path.join(self.img_dir, f'{frame:06d}.png')
-			save_path = os.path.join(self.vis_dir, f'{frame:06d}.jpg'); mkdir_if_missing(save_path)
-			self.visualization(img, dets, trks, self.calib, self.hw, save_path)
+		# # visualization
+		# if self.vis and (self.vis_dir is not None):
+		# 	img = os.path.join(self.img_dir, f'{frame:06d}.png')
+		# 	save_path = os.path.join(self.vis_dir, f'{frame:06d}.jpg'); mkdir_if_missing(save_path)
+		# 	self.visualization(img, dets, trks, self.calib, self.hw, save_path)
 
 		# matching
 		trk_innovation_matrix = None
@@ -441,13 +455,14 @@ class AB3DMOT(object):
 		# print_log(affi, log=self.log, display=False)
 
 		# update trks with matched detection measurement
-		self.update(matched, unmatched_trks, dets, info)
+		self.update(matched, unmatched_trks, dets, info, pcd, frame)
 
 		# create and initialise new trackers for unmatched detections
-		new_id_list = self.birth(dets, info, unmatched_dets)
+		new_id_list = self.birth(dets, info, unmatched_dets, pcd, frame)
 
 		# output existing valid tracks
 		results = self.output()
+		# assert(len(results)== len(pcd))
 		if len(results) > 0: results = [np.concatenate(results)]		# h,w,l,x,y,z,theta, ID, other info, confidence
 		else:            	 results = [np.empty((0, 15))]
 		self.id_now_output = results[0][:, 7].tolist()					# only the active tracks that are outputed

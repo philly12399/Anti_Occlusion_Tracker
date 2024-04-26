@@ -9,16 +9,17 @@ from AB3DMOT_libs.io import load_detection, get_saving_dir, get_frame_det, save_
 from scripts.post_processing.combine_trk_cat import combine_trk_cat
 from xinshuo_io import mkdir_if_missing, save_txt_file
 from xinshuo_miscellaneous import get_timestring, print_log
-import pickle
+from AB3DMOT_libs.philly_io import *
+from AB3DMOT_libs.philly_utils import *
 def parse_args():
-    parser = argparse.ArgumentParser(description='AB3DMOT')
-    parser.add_argument('--dataset', type=str, default='nuScenes', help='KITTI, nuScenes, Wayside')
-    parser.add_argument('--split', type=str, default='', help='train, val, test')
-    parser.add_argument('--det_name', type=str, default='', help='pointrcnn')
-    parser.add_argument('--frame', type=int, default=-1, help='frame num')
-    
-    args = parser.parse_args()
-    return args
+	parser = argparse.ArgumentParser(description='AB3DMOT')
+	parser.add_argument('--dataset', type=str, default='nuScenes', help='KITTI, nuScenes, Wayside')
+	parser.add_argument('--split', type=str, default='', help='train, val, test')
+	parser.add_argument('--det_name', type=str, default='', help='pointrcnn')
+	parser.add_argument('--frame', type=int, default=-1, help='frame num')
+	
+	args = parser.parse_args()
+	return args
 
 def main_per_cat(cfg, cat, log, ID_start, frame_num):
 	# get data-cat-split specific path
@@ -32,8 +33,7 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num):
 	##PCD INFO
 	if('pcd_db_root' in cfg):
 		pcd_db_root = cfg.pcd_db_root
-		with open(os.path.join(pcd_db_root, 'info.pkl'), 'rb') as file:
-			pcd_info = pickle.load(file) 
+		pcd_info = read_pkl(os.path.join(pcd_db_root, 'info.pkl'))
 		pcd_db = os.path.join(pcd_db_root, 'gt_database')
 	##CLASS MAP
 	class_map = {}
@@ -54,6 +54,7 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num):
 	for seq_name in seq_eval:
 		seq_file = os.path.join(det_root, seq_name+'.txt')
 		seq_dets, flag = load_detection(seq_file, format=cfg.dataset, cat=cat, cls_map = class_map) 	# load detection
+		print(f"{len(seq_dets)} detections")
 		if not flag: continue									# no detection
 
 		# create folders for saving
@@ -65,19 +66,7 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num):
 		min_frame, max_frame = int(frame_list[0]), int(frame_list[-1])
   
 		##Pcd info
-		pcd_db_seq_root = os.path.join(pcd_db, seq_name)
-		pcd_info_seq=[[] for i in range(min_frame, max_frame + 1)]
-		for pp in pcd_info[seq_name]:
-			#print(pp['obj']['frame_id'],pp['obj_det_idx'])
-			if(pp['obj']['obj_type'] in class_map):
-				pp['obj']['obj_type'] = class_map[pp['obj']['obj_type']]
-			real_idx = pp['obj_det_idx']
-			frame_seq = pcd_info_seq[pp['obj']['frame_id']-min_frame]
-			##Put info to correspond frame, some pcd is not consequence, so pad with None
-			while(real_idx>len(frame_seq)):
-				frame_seq.append(None)
-			frame_seq.append(pp)
-
+		pcd_info_seq = pcd_info_seq_preprocess(pcd_info[seq_name], os.path.join(pcd_db, seq_name), min_frame, max_frame, class_map, cat)
 		for frame in range(min_frame, max_frame + 1):
 			if(frame >= frame_num and args.frame!=-1):
 				break
@@ -92,8 +81,18 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num):
 
 			# tracking by detection
 			dets_frame = get_frame_det(seq_dets, frame, format=cfg.dataset)
+			## load PCDs
+			pcd_info_frame = pcd_info_seq[frame-min_frame]
+			pcd_frame = []
+			for p in pcd_info_frame:
+				if(p is  None):
+					pcd_frame.append(None)
+				else:
+					pcd_frame.append(read_points_from_bin(p['path']))
+
 			since = time.time()
-			results, affi = tracker.track(dets_frame, frame, seq_name)		
+			results, affi = tracker.track(dets_frame, frame, seq_name, pcd_info_frame, pcd_frame)
+
 			total_time += time.time() - since
 
 			# saving affinity matrix, between the past frame and current frame

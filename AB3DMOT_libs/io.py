@@ -8,18 +8,20 @@ from xinshuo_io import mkdir_if_missing, load_txt_file, save_txt_file
 
 def load_detection(file, format="",cat = "",cls_map = {}):
 	# load from raw file
+	cat_low = cat.lower()    
 	with warnings.catch_warnings():
 		warnings.simplefilter("ignore")
 		if(format=="Wayside"):
-			str2id = {'Car':1,'Cyclist':2}			
+			str2id = {'car':1,'cyclist':2}			
 			dets1 = np.genfromtxt(file, delimiter=' ', dtype=float) #for label
 			dets2 = np.genfromtxt(file, delimiter=' ', dtype=str) #for class only
 			l = []
 			for i in range(len(dets1)):
+				dets2[i][2] = dets2[i][2].lower()
 				if(dets2[i][2] in cls_map): #truck to car
 					dets2[i][2] = cls_map[dets2[i][2]]	     				
 				dets1[i][2] = str2id[dets2[i][2]]
-				if(dets1[i][2] == str2id[cat]):
+				if(dets1[i][2] == str2id[cat_low]):
 					l.append(dets1[i])
 			dets = np.array(l)
 		else:

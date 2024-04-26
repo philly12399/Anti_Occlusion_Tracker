@@ -7,7 +7,7 @@
     dataset                      : Wayside      # KITTI
     split                        : val        # val, test
     det_name                     : mark  # name of the detector [pointrcnn, pvrcnn]
-    cat_list                     : ['Car', 'Cyclist']
+    cat_list                     : ['Car'] # upper case first letter
     
     score_threshold              : -10000     # filter out tracklet with low confidence if necessary, default no filtering here but do it in trk_conf_threshold.py
     num_hypo                     : 1          # >1 to allow multi-hypothesis tracking
@@ -15,8 +15,9 @@
     # --------------- model.py
     ego_com                      : false      # turn on only slightly reduce speed but increase a lot for performance
     vis                          : false       # only for debug or visualization purpose, will significantly reduce speed
-    affi_pro                     : true
+    affi_pro                     : false
     #---------------- addition
     label_format                 : Wayside      # Kitti, Waymo, nuscenes
     pcd_db_root                  : ./data/Wayside/pcd_db/mark_detection_to_ab3dmot/ 
-    class_map                    : {"Truck": "Car"}
+    class_map                    : {"truck": "car"} #lower case
+    buffer_size                  : 30
