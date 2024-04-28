@@ -49,7 +49,7 @@ def greedy_matching(cost_matrix):
     return np.asarray(matched_indices)
 
 def data_association(dets, trks, metric, threshold, algm='greedy', \
-	trk_innovation_matrix=None, hypothesis=1):   
+	trk_innovation_matrix=None):   
 	"""
 	Assigns detections to tracked object
 
@@ -77,15 +77,15 @@ def data_association(dets, trks, metric, threshold, algm='greedy', \
 	aff_matrix = compute_affinity(dets, trks, metric, trk_inv_inn_matrices)
 
 	# association based on the affinity matrix
-	if hypothesis == 1:
-		if algm == 'hungar':
-			row_ind, col_ind = linear_sum_assignment(-aff_matrix)      	# hougarian algorithm
-			matched_indices = np.stack((row_ind, col_ind), axis=1)
-		elif algm == 'greedy':
-			matched_indices = greedy_matching(-aff_matrix) 				# greedy matching
-		else: assert False, 'error'
-	else:
-		cost_list, hun_list = best_k_matching(-aff_matrix, hypothesis)
+ 
+	if algm == 'hungar':
+		row_ind, col_ind = linear_sum_assignment(-aff_matrix)      	# hougarian algorithm
+		matched_indices = np.stack((row_ind, col_ind), axis=1)
+	elif algm == 'greedy':
+		matched_indices = greedy_matching(-aff_matrix) 				# greedy matching
+	else: assert False, 'error'
+	# else:
+	# 	cost_list, hun_list = best_k_matching(-aff_matrix, hypothesis)
 
 	# compute total cost
 	cost = 0

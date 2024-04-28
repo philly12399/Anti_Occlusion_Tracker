@@ -18,6 +18,6 @@
     affi_pro                     : false
     #---------------- addition
     label_format                 : Wayside      # Kitti, Waymo, nuscenes
-    pcd_db_root                  : ./data/Wayside/pcd_db/mark_detection_to_ab3dmot/ 
+    pcd_db_root                  : ./data/Wayside/pcd_db/mark_dense/
     class_map                    : {"truck": "car"} #lower case
     buffer_size                  : 30

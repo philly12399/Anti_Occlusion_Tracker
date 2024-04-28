@@ -66,6 +66,7 @@ class TrackBuffer():
 	def get_velocity(self):
 		# return the object velocity in the state
 		return self.kf.x[7:]
+
 	def update_buffer(self, bbox, pcd, time_stamp):
 		self.bbox.append(bbox)
 		self.pcd.append(pcd)

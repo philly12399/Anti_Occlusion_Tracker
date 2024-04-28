@@ -12,7 +12,7 @@ def pcd_info_seq_preprocess(pcd_info, pcd_db_seq_root, min_frame, max_frame, cla
 		if(pp['obj']['obj_type']!=cat_low):
 			frame_cnt[fid]+=1
 			continue
-		pp['path'] = os.path.join(pcd_db_seq_root, pp['path'])
+		pp['mae_dense_path'] = os.path.join(pcd_db_seq_root, pp['mae_dense_path'])
 		##Put info to correspond frame, some pcd is not consequence, so pad with None
 		while(pp['obj_det_idx']>frame_cnt[fid]):
 			frame_seq.append(None)			

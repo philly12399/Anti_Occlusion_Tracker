@@ -4,6 +4,7 @@
 import numpy as np, os, copy, math
 from AB3DMOT_libs.box import Box3D
 from AB3DMOT_libs.matching import data_association
+from AB3DMOT_libs.philly_matching import data_association as data_association_philly
 from AB3DMOT_libs.kalman_filter import KF
 from AB3DMOT_libs.vis import vis_obj
 from AB3DMOT_libs.TrackBuffer import TrackBuffer , KF_predict
@@ -409,7 +410,6 @@ class AB3DMOT(object):
 
 		NOTE: The number of objects returned may differ from the number of detections provided.
 		"""
-		
 
 		dets, info = dets_all['dets'], dets_all['info']         # dets: N x 7, float numpy array
 	
@@ -428,7 +428,7 @@ class AB3DMOT(object):
 		# tracks propagation based on velocity
 		trks = self.prediction()
 
-		## Comment for wayside
+		## Comment for wayside (don't need)
 		# # ego motion compensation, adapt to the current frame of camera coordinate
 		# if (frame > 0) and (self.ego_com) and (self.oxts is not None):
 		# 	trks = self.ego_motion_compensation(frame, trks)
@@ -443,8 +443,8 @@ class AB3DMOT(object):
 		trk_innovation_matrix = None
 		if self.metric == 'm_dis':
 			trk_innovation_matrix = [trk.kf.compute_innovation_matrix() for trk in self.track_buf] 
-		matched, unmatched_dets, unmatched_trks, cost, affi = \
-			data_association(dets, trks, self.metric, self.thres, self.algm, trk_innovation_matrix)
+		# matched, unmatched_dets, unmatched_trks, cost, affi = data_association(dets, trks, self.metric, self.thres, self.algm, trk_innovation_matrix)
+		matched, unmatched_dets, unmatched_trks, cost, affi = data_association_philly(dets, trks, self.metric, self.thres, self.algm, trk_innovation_matrix)
 		# print_log('detections are', log=self.log, display=False)
 		# print_log(dets, log=self.log, display=False)
 		# print_log('tracklets are', log=self.log, display=False)
