@@ -39,7 +39,7 @@ def get_frame_det(dets_all, frame, format=""):
 		matched_dets = dets_all[dets_all[:, 0] == frame , 0:]	
 		ori_array = matched_dets[:, 5].reshape((-1, 1))		# orientation
 		other_array = matched_dets[:, [2,6,7,8,9,-1]] # other information, e.g, 2D box, ...
-		additional_info = np.concatenate((ori_array, other_array), axis=1)		
+		additional_info = np.concatenate((ori_array, other_array), axis=1) # ori,class,2dbox,confidence
 		# get 3D box
 		dets = matched_dets[:, [12,11,10,13,14,15,16]]		
 		dets_frame = {'dets': dets, 'info': additional_info}

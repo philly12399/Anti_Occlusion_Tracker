@@ -54,7 +54,6 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num):
 	for seq_name in seq_eval:
 		seq_file = os.path.join(det_root, seq_name+'.txt')
 		seq_dets, flag = load_detection(seq_file, format=cfg.dataset, cat=cat, cls_map = class_map) 	# load detection
-		print(f"{len(seq_dets)} detections")
 		if not flag: continue									# no detection
 
 		# create folders for saving
