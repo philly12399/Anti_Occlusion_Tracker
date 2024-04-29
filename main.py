@@ -82,15 +82,9 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num):
             dets_frame = get_frame_det(seq_dets, frame, format=cfg.dataset)
             ## load PCDs
             pcd_info_frame = pcd_info_seq[frame-min_frame]
-            pcd_frame = []
-            for p in pcd_info_frame:
-                if(p is None or not p['valid']):
-                    pcd_frame.append(None)
-                else:
-                    dense_pts = read_points_from_bin(p['mae_dense_path'], unique=True)
-                    pcd_frame.append(dense_pts)
- 
+            pcd_frame = load_dense_byinfo(pcd_info_frame) 
             assert len(pcd_frame) == len(dets_frame['dets'])
+            
             since = time.time()
             results, affi = tracker.track(dets_frame, frame, seq_name, pcd_info_frame, pcd_frame)
             total_time += time.time() - since

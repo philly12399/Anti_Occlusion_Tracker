@@ -134,6 +134,9 @@ def test(track_root='./output_bytrackid/car_mark_all_rotxy'):
         
 
 def NDT_voxelize(pcd, det, cfg=None):
+    if(pcd ==None):
+        return None
+    
     voxel_size, overlap, min_pts_voxel, noise = 0.5, True, 5, 0.05
     if(cfg != None):
         voxel_size, overlap, min_pts_voxel, noise = cfg['voxel_size'], cfg['overlap'], cfg['min_pts_voxel'], cfg['noise']

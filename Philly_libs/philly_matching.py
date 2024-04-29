@@ -48,7 +48,7 @@ def greedy_matching(cost_matrix):
 
     return np.asarray(matched_indices)
 
-def data_association(dets, trks, metric, threshold, algm='greedy'):   
+def data_association(dets, trks, NDT_voxels, trk_buf, metric, threshold, algm='greedy'):   
 	"""
 	Assigns detections to tracked object
 

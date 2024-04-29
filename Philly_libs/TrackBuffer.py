@@ -8,7 +8,6 @@ class TrackBuffer():
 		self.time_since_update = 0
 		self.hits = 1  
 		self.bbox = []
-		self.pcd = []
 		self.NDT_voxels = []
 		self.time_stamp = []
 		self.kf_buffer = []
@@ -24,9 +23,9 @@ class TrackBuffer():
 		# return the object velocity in the state
 		return self.kf.x[7:]
 
-	def update_buffer(self, bbox, pcd, time_stamp):
+	def update_buffer(self, bbox, voxel, time_stamp):
 		self.bbox.append(bbox)
-		self.pcd.append(pcd)
+		self.NDT_voxels.append(voxel)
 		self.time_stamp.append(time_stamp)
 		self.kf_buffer.append(self.kf)
 		self.match = True
