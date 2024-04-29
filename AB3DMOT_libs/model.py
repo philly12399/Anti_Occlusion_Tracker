@@ -4,10 +4,11 @@
 import numpy as np, os, copy, math
 from AB3DMOT_libs.box import Box3D
 from AB3DMOT_libs.matching import data_association
-from AB3DMOT_libs.philly_matching import data_association as data_association_philly
 from AB3DMOT_libs.kalman_filter import KF
 from AB3DMOT_libs.vis import vis_obj
-from AB3DMOT_libs.TrackBuffer import TrackBuffer , KF_predict
+from Philly_libs.philly_matching import data_association as data_association_philly
+from Philly_libs.TrackBuffer import TrackBuffer , KF_predict
+from Philly_libs.NDT import NDT_voxelize,draw_NDT_voxel
 from xinshuo_miscellaneous import print_log
 from xinshuo_io import mkdir_if_missing
 
@@ -38,16 +39,20 @@ class AB3DMOT(object):
 		self.affi_process = cfg.affi_pro	# post-processing affinity
 		self.get_param(cfg, cat)
 		self.print_param()
+  
 		self.label_format = None
 		if('label_format' in cfg):
 			self.label_format = cfg.label_format
-   
 		self.buffer_size = 30
 		if('buffer_size' in cfg):
 			self.buffer_size = cfg.buffer_size
-   
 		Box3D.set_label_format(self.label_format)
-		# debug
+		##NDT
+		self.NDT_cfg = None
+		if('NDT_cfg' in cfg):
+			self.NDT_cfg = cfg.NDT_cfg
+		
+  		# debug
 		# self.debug_id = 2
 		self.debug_id = None
 
@@ -439,12 +444,19 @@ class AB3DMOT(object):
 		# 	save_path = os.path.join(self.vis_dir, f'{frame:06d}.jpg'); mkdir_if_missing(save_path)
 		# 	self.visualization(img, dets, trks, self.calib, self.hw, save_path)
 
+		###NDT
+		NDT_Voxels = []
+		for i in range(len(dets)):
+			valid_voxel,_,_ = NDT_voxelize(pcd[i],dets[i],self.NDT_cfg)
+			# draw_NDT_voxel(valid_voxel)
+			NDT_Voxels.append(valid_voxel)
+		# if
+		exit()
+		# for v in NDT_Voxels:
 		# matching
-		trk_innovation_matrix = None
-		if self.metric == 'm_dis':
-			trk_innovation_matrix = [trk.kf.compute_innovation_matrix() for trk in self.track_buf] 
-		# matched, unmatched_dets, unmatched_trks, cost, affi = data_association(dets, trks, self.metric, self.thres, self.algm, trk_innovation_matrix)
-		matched, unmatched_dets, unmatched_trks, cost, affi = data_association_philly(dets, trks, self.metric, self.thres, self.algm, trk_innovation_matrix)
+
+		# matched, unmatched_dets, unmatched_trks, cost, affi = data_association(dets, trks, self.metric, self.thres, self.algm)
+		matched, unmatched_dets, unmatched_trks, cost, affi = data_association_philly(dets, trks, self.metric, self.thres, self.algm)
 		# print_log('detections are', log=self.log, display=False)
 		# print_log(dets, log=self.log, display=False)
 		# print_log('tracklets are', log=self.log, display=False)

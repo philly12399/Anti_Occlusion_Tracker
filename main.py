@@ -9,8 +9,8 @@ from AB3DMOT_libs.io import load_detection, get_saving_dir, get_frame_det, save_
 from scripts.post_processing.combine_trk_cat import combine_trk_cat
 from xinshuo_io import mkdir_if_missing, save_txt_file
 from xinshuo_miscellaneous import get_timestring, print_log
-from AB3DMOT_libs.philly_io import *
-from AB3DMOT_libs.philly_utils import *
+from Philly_libs.philly_io import *
+from Philly_libs.philly_utils import *
 def parse_args():
     parser = argparse.ArgumentParser(description='AB3DMOT')
     parser.add_argument('--dataset', type=str, default='nuScenes', help='KITTI, nuScenes, Wayside')
@@ -23,7 +23,7 @@ def parse_args():
 
 def main_per_cat(cfg, cat, log, ID_start, frame_num):
     # get data-cat-split specific path
-
+    np.random.seed(0)
     all_sha = '%s_%s_%s' % (cfg.det_name, 'all', cfg.split)
     result_sha = '%s_%s_%s' % (cfg.det_name, cat, cfg.split)
     det_root = os.path.join('./data', cfg.dataset, 'detection', all_sha)
@@ -87,8 +87,9 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num):
                 if(p is None or not p['valid']):
                     pcd_frame.append(None)
                 else:
-                    dense_pts = read_points_from_bin(p['mae_dense_path'])
+                    dense_pts = read_points_from_bin(p['mae_dense_path'], unique=True)
                     pcd_frame.append(dense_pts)
+ 
             assert len(pcd_frame) == len(dets_frame['dets'])
             since = time.time()
             results, affi = tracker.track(dets_frame, frame, seq_name, pcd_info_frame, pcd_frame)
@@ -163,11 +164,6 @@ def main(args):
     print_log('\nDone!', log=log)
     log.close()
     
-import open3d as o3d
-def draw_pcd(points):
-    pcd = o3d.geometry.PointCloud()
-    pcd.points = o3d.utility.Vector3dVector(points)
-    o3d.visualization.draw_geometries([pcd,], width=800, height=500)
     
 if __name__ == '__main__':
 

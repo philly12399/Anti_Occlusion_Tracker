@@ -3,7 +3,7 @@ from numba import jit
 from scipy.optimize import linear_sum_assignment
 from AB3DMOT_libs.dist_metrics import iou, dist3d, dist_ground, m_distance
 
-def compute_affinity(dets, trks, metric, trk_inv_inn_matrices=None):
+def compute_affinity(dets, trks, metric):
 	# compute affinity matrix
 
 	aff_matrix = np.zeros((len(dets), len(trks)), dtype=np.float32)
@@ -12,7 +12,7 @@ def compute_affinity(dets, trks, metric, trk_inv_inn_matrices=None):
 
 			# choose to use different distance metrics
 			if 'iou' in metric:    	  dist_now = iou(det, trk, metric)            
-			elif metric == 'm_dis':   dist_now = -m_distance(det, trk, trk_inv_inn_matrices[t])
+			# elif metric == 'm_dis':   dist_now = -m_distance(det, trk, trk_inv_inn_matrices[t])
 			elif metric == 'euler':   dist_now = -m_distance(det, trk, None)
 			elif metric == 'dist_2d': dist_now = -dist_ground(det, trk)              	
 			elif metric == 'dist_3d': dist_now = -dist3d(det, trk)              				
@@ -48,8 +48,7 @@ def greedy_matching(cost_matrix):
 
     return np.asarray(matched_indices)
 
-def data_association(dets, trks, metric, threshold, algm='greedy', \
-	trk_innovation_matrix=None):   
+def data_association(dets, trks, metric, threshold, algm='greedy'):   
 	"""
 	Assigns detections to tracked object
 
@@ -66,15 +65,8 @@ def data_association(dets, trks, metric, threshold, algm='greedy', \
 	if len(dets) == 0: 
 		return np.empty((0, 2), dtype=int), [], np.arange(len(trks)), 0, aff_matrix		
 	
-	# prepare inverse innovation matrix for m_dis
-	if metric == 'm_dis':
-		assert trk_innovation_matrix is not None, 'error'
-		trk_inv_inn_matrices = [np.linalg.inv(m) for m in trk_innovation_matrix]
-	else:
-		trk_inv_inn_matrices = None
-
 	# compute affinity matrix
-	aff_matrix = compute_affinity(dets, trks, metric, trk_inv_inn_matrices)
+	aff_matrix = compute_affinity(dets, trks, metric)
 
 	# association based on the affinity matrix
  

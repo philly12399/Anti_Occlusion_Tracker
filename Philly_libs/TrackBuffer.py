@@ -9,12 +9,29 @@ class TrackBuffer():
 		self.hits = 1  
 		self.bbox = []
 		self.pcd = []
+		self.NDT_voxels = []
 		self.time_stamp = []
 		self.kf_buffer = []
 		self.match = True
 		self.status = []
 		self.buffer_size = buffer_size
+		self.pcd_of_track = None
+		self.KF_init(bbox3D)
+		##UPDATE
+		self.update_buffer(bbox3D,pcd,time_stamp)
+
+	def get_velocity(self):
+		# return the object velocity in the state
+		return self.kf.x[7:]
+
+	def update_buffer(self, bbox, pcd, time_stamp):
+		self.bbox.append(bbox)
+		self.pcd.append(pcd)
+		self.time_stamp.append(time_stamp)
+		self.kf_buffer.append(self.kf)
+		self.match = True
   
+	def KF_init(self, bbox3D):
 		#Kalman filter
 		self.kf = KalmanFilter(dim_x=10, dim_z=7)       
 		# There is no need to use EKF here as the measurement and state are in the same space with linear relationship
@@ -55,25 +72,7 @@ class TrackBuffer():
 
 		# initialize data
 		self.kf.x[:7] = bbox3D.reshape((7, 1))
-		##UPDATE
-		self.update_buffer(bbox3D,pcd,time_stamp)
-	
-	def compute_innovation_matrix(self):
-		""" compute the innovation matrix for association with mahalanobis distance
-		"""
-		return np.matmul(np.matmul(self.kf.H, self.kf.P), self.kf.H.T) + self.kf.R
-
-	def get_velocity(self):
-		# return the object velocity in the state
-		return self.kf.x[7:]
-
-	def update_buffer(self, bbox, pcd, time_stamp):
-		self.bbox.append(bbox)
-		self.pcd.append(pcd)
-		self.time_stamp.append(time_stamp)
-		self.kf_buffer.append(self.kf)
-		self.match = True
-
+  
 def KF_predict(kf,time=1):
 	""" predict the state of the kalman filter
 	"""
