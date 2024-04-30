@@ -7,6 +7,7 @@ class TrackBuffer():
 		self.info = info
 		self.time_since_update = 0
 		self.hits = 1  
+  
 		self.bbox = []
 		self.NDT_voxels = []
 		self.time_stamp = []

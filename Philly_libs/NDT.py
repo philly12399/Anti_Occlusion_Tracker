@@ -5,6 +5,7 @@ import open3d as o3d
 import math
 from Philly_libs.NDTPDF import PDF
 from Philly_libs.philly_utils import in_bbox,draw_pts
+import time
 def test(track_root='./output_bytrackid/car_mark_all_rotxy'):
     np.random.seed(0)
     track_path = {}
@@ -134,11 +135,12 @@ def test(track_root='./output_bytrackid/car_mark_all_rotxy'):
         
 
 def NDT_voxelize(pcd, det, cfg=None):
-    if(pcd ==None):
-        return None
+    TT1=time.time()
+    if(pcd is None):
+        return [],[],[]
     
     voxel_size, overlap, min_pts_voxel, noise = 0.5, True, 5, 0.05
-    if(cfg != None):
+    if(cfg is not None):
         voxel_size, overlap, min_pts_voxel, noise = cfg['voxel_size'], cfg['overlap'], cfg['min_pts_voxel'], cfg['noise']
     # move to orign  
     box = NDT_Voxel(0,0,0,det.l,det.w,det.h)
@@ -157,6 +159,7 @@ def NDT_voxelize(pcd, det, cfg=None):
     l, w, h = box.l, box.w, box.h
     ln, wn, hn = math.ceil(l / (stride))+1, math.ceil(w / (stride))+1, math.ceil(h / (stride))+1
     voxels = []
+    
     for i in range(0, ln):
         for j in range(0, wn):
             for k in range(0, hn):
@@ -170,6 +173,7 @@ def NDT_voxelize(pcd, det, cfg=None):
                     'h': voxel_size,
                 }
                 voxels.append(NDT_Voxel(v['x'],v['y'],v['z'],v['l'],v['w'],v['h'],voxel_size,min_pts_voxel,noise))
+    TT2=time.time()
     
     #regular
     incnt=0
@@ -184,6 +188,7 @@ def NDT_voxelize(pcd, det, cfg=None):
                             voxels[idx].pts.append(p)
                             incnt+=1   
     assert scalar*len(pcd) ==  incnt
+    TT3=time.time()
 
     ##statistic
     valid_voxel = []
@@ -194,33 +199,33 @@ def NDT_voxelize(pcd, det, cfg=None):
             valid_voxel.append(v)
         else:
             invalid_voxel.append(v)
+    TT4=time.time()
+    # print(f"Voxel_init_time:{TT2-TT1}s, allocate_PTS_voxel_time:{TT3-TT2}s, calculate_NDT_time:{TT4-TT3}s")
     return valid_voxel, invalid_voxel, voxels
 
+
+
 def NDT_score(a, b, mixed_pdf=True):
-    # a['voxel']
+    a_array = np.array([(va.x, va.y, va.z) for va in a])
+    b_array = np.array([(vb.x, vb.y, vb.z) for vb in b])
     pairs = []
-    for i in range(len(a['voxel'])):
-        min_dist = float('inf')
-        closest_index = None
-        pa = a['voxel'][i]
-        for j in range(len(b['voxel'])):
-            pb = b['voxel'][j]
-            dist = (pa['x']-pb['x'])**2 + (pa['y']-pb['y'])**2 + (pa['z']-pb['z'])**2
-            if dist < min_dist:
-                min_dist = dist
-                closest_index = j  
+    #find closest match voxel pair
+    for i, va in enumerate(a_array):
+        dist = np.sum((b_array - va)**2, axis=1)
+        closest_index = np.argmin(dist)
+        min_dist = dist[closest_index]
         pairs.append((i,closest_index))
     global_ndt_score = 0
     for (i,j) in pairs:
-        score = NDT_voxel_score(a['voxel'][i], b['voxel'][j], mixed_pdf)
+        score = NDT_voxel_score(a[i], b[j], mixed_pdf)
         global_ndt_score += score
     return global_ndt_score
-
+        
 def NDT_voxel_score(a, b, mixed_pdf=True):
     if(mixed_pdf):
-        pdf_scores = b['NDTpdf'].mixed_pdf(a['pts'])
+        pdf_scores = b.NDTpdf.mixed_pdf(a.pts)
     else:
-        pdf_scores = b['NDTpdf'].pdf(a['pts'])
+        pdf_scores = b.NDTpdf.pdf(a.pts)
     ndt_score = -np.sum(pdf_scores)
     mean_scores = np.mean(pdf_scores)
     

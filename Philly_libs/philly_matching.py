@@ -2,8 +2,8 @@ import numpy as np
 from numba import jit
 from scipy.optimize import linear_sum_assignment
 from AB3DMOT_libs.dist_metrics import iou, dist3d, dist_ground, m_distance
-
-def compute_affinity(dets, trks, metric):
+from Philly_libs.NDT import NDT_score
+def compute_bbox_affinity(dets, trks, metric):
 	# compute affinity matrix
 
 	aff_matrix = np.zeros((len(dets), len(trks)), dtype=np.float32)
@@ -19,6 +19,21 @@ def compute_affinity(dets, trks, metric):
 			else: assert False, 'error'
 			aff_matrix[d, t] = dist_now
 
+	return aff_matrix
+import pdb
+import time
+def compute_pcd_affinity(NDT_Voxels, track_buf):
+	# compute affinity matrix
+	aff_matrix = np.full((len(NDT_Voxels), len(track_buf)), np.inf,dtype=np.float32)
+
+	for v, voxels in enumerate(NDT_Voxels):
+		if(voxels is None):
+			continue
+		for t, trkbuf in enumerate(track_buf):
+			rep_of_trk = trkbuf.NDT_voxels[-1]
+			if(rep_of_trk is None):
+				continue
+			aff_matrix[v, t] = NDT_score(voxels, rep_of_trk)
 	return aff_matrix
 
 def greedy_matching(cost_matrix):
@@ -52,8 +67,8 @@ def data_association(dets, trks, NDT_voxels, trk_buf, metric, threshold, algm='g
 	"""
 	Assigns detections to tracked object
 
-	dets:  a list of Box3D object
-	trks:  a list of Box3D object
+	dets:  a list of Box3D object (detected)
+	trks:  a list of Box3D object (predicted)
 
 	Returns 3 lists of matches, unmatched_dets and unmatched_trks, and total cost, and affinity matrix
 	"""
@@ -66,8 +81,8 @@ def data_association(dets, trks, NDT_voxels, trk_buf, metric, threshold, algm='g
 		return np.empty((0, 2), dtype=int), [], np.arange(len(trks)), 0, aff_matrix		
 	
 	# compute affinity matrix
-	aff_matrix = compute_affinity(dets, trks, metric)
-
+	aff_matrix = compute_bbox_affinity(dets, trks, metric)
+	pcd_affinity_matrix = compute_pcd_affinity(NDT_voxels, trk_buf)
 	# association based on the affinity matrix
  
 	if algm == 'hungar':
@@ -79,7 +94,7 @@ def data_association(dets, trks, NDT_voxels, trk_buf, metric, threshold, algm='g
 	# else:
 	# 	cost_list, hun_list = best_k_matching(-aff_matrix, hypothesis)
 
-	# compute total cost
+	# compute total fdcost
 	cost = 0
 	for row_index in range(matched_indices.shape[0]):
 		cost -= aff_matrix[matched_indices[row_index, 0], matched_indices[row_index, 1]]

@@ -5,7 +5,7 @@ def read_pkl(path):
         data = pickle.load(file)
         return data
 
-def read_points_from_bin(bin_file,unique=False):
+def read_points_from_bin(bin_file, unique=False):
     gt_points = np.fromfile(bin_file, dtype=np.float32).reshape(-1, 4)[:,:3]
     if(unique):
         gt_points = np.unique(gt_points,axis=0)

@@ -73,20 +73,26 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num):
             # but should output an N x 0 affinity for consistency
 
             # logging
-            print_str = 'processing %s %s: %d/%d, %d/%d   \r' % (result_sha, seq_name, seq_count, \
+            print_str = 'processing %s %s: %d/%d, %d/%d  \n' % (result_sha, seq_name, seq_count, \
                 len(seq_eval), frame, max_frame)
+            # print_str = 'processing %s %s: %d/%d, %d/%d   \r' % (result_sha, seq_name, seq_count, \
+            #     len(seq_eval), frame, max_frame)
             sys.stdout.write(print_str)
             sys.stdout.flush()
 
             # tracking by detection
+            TT1=time.time()
             dets_frame = get_frame_det(seq_dets, frame, format=cfg.dataset)
+            TT2=time.time()
             ## load PCDs
             pcd_info_frame = pcd_info_seq[frame-min_frame]
             pcd_frame = load_dense_byinfo(pcd_info_frame) 
+            TT3=time.time()
             assert len(pcd_frame) == len(dets_frame['dets'])
-            
+            # print(f"load_pcd_time:{TT3-TT2}s ; load_label_time:{TT2-TT1}s")
             since = time.time()
             results, affi = tracker.track(dets_frame, frame, seq_name, pcd_info_frame, pcd_frame)
+            print(f"tracker_total_time:{time.time()-since}s")
             total_time += time.time() - since
 
             # saving affinity matrix, between the past frame and current frame

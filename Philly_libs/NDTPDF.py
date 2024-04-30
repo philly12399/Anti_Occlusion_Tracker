@@ -21,23 +21,21 @@ class PDF:
     def pdf(self, x):  
         x = x.reshape(-1,3)        
         dx = (x - self.mean)
-        out=[]
-        for i in range(dx.shape[0]):
-            factor = 1/np.sqrt(((2*np.pi)**3)*(np.linalg.det(self.cov)))
-            exp = np.exp(-0.5*(np.matmul(np.matmul(dx[i].T, self.cov_inv), dx[i])))    
-            p = exp*factor
-            assert (p != math.inf)   
-            out.append(p)     
-        return out
-        
+        factor = 1/np.sqrt(((2*np.pi)**3)*(np.linalg.det(self.cov)))
+        power = -0.5*np.sum(np.multiply(np.matmul(dx, self.cov_inv), dx), axis = 1)
+        p = np.exp(power)*factor
+        return p
+    
     def mixed_pdf(self, x):        
         x = x.reshape(-1,3)
         dx = (x - self.mean)
-        out=[]
-        c=0
-        for i in range(dx.shape[0]):
-            p = -self.d[1]*np.exp(-0.5*self.d[2]*np.matmul(np.matmul(dx[i].T, self.cov_inv), dx[i])) 
-            assert (p != math.inf)           
-            out.append(p)        
-        return out
+        ## more efficient 
+        power = -0.5*self.d[2]*np.sum(np.multiply(np.matmul(dx, self.cov_inv), dx), axis = 1)
+        p = -self.d[1]*np.exp(power)    
+        # out=[]
+        # for i in range(dx.shape[0]):
+        #     p = -self.d[1]*np.exp(-0.5*self.d[2]*np.matmul(np.matmul(dx[i].T, self.cov_inv), dx[i])) 
+        #     assert (p != math.inf)           
+        #     out.append(p)            
+        return p
  
