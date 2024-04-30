@@ -201,7 +201,7 @@ def NDT_voxelize(pcd, det, cfg=None):
             valid_voxel.append(v)
         else:
             invalid_voxel.append(v)
-    TT.append(time.time()))
+    TT.append(time.time())
     # print(f"Voxel_init_time:{TT[2]-TT[1]}s, allocate_PTS_voxel_time:{TT[3]-TT[2]}s, calculate_NDT_time:{TT[4]-TT[3]}s")
     return valid_voxel, invalid_voxel, voxels
 
