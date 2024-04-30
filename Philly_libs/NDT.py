@@ -135,7 +135,8 @@ def test(track_root='./output_bytrackid/car_mark_all_rotxy'):
         
 
 def NDT_voxelize(pcd, det, cfg=None):
-    TT1=time.time()
+    TT=[time.time()]
+    TT.append(time.time())
     if(pcd is None):
         return [],[],[]
     
@@ -173,7 +174,7 @@ def NDT_voxelize(pcd, det, cfg=None):
                     'h': voxel_size,
                 }
                 voxels.append(NDT_Voxel(v['x'],v['y'],v['z'],v['l'],v['w'],v['h'],voxel_size,min_pts_voxel,noise))
-    TT2=time.time()
+    TT.append(time.time())
     
     #regular
     incnt=0
@@ -187,8 +188,9 @@ def NDT_voxelize(pcd, det, cfg=None):
                         if(in_bbox(p,voxels[idx])):                                
                             voxels[idx].pts.append(p)
                             incnt+=1   
+                        
     assert scalar*len(pcd) ==  incnt
-    TT3=time.time()
+    TT.append(time.time())
 
     ##statistic
     valid_voxel = []
@@ -199,13 +201,12 @@ def NDT_voxelize(pcd, det, cfg=None):
             valid_voxel.append(v)
         else:
             invalid_voxel.append(v)
-    TT4=time.time()
-    # print(f"Voxel_init_time:{TT2-TT1}s, allocate_PTS_voxel_time:{TT3-TT2}s, calculate_NDT_time:{TT4-TT3}s")
+    TT.append(time.time()))
+    # print(f"Voxel_init_time:{TT[2]-TT[1]}s, allocate_PTS_voxel_time:{TT[3]-TT[2]}s, calculate_NDT_time:{TT[4]-TT[3]}s")
     return valid_voxel, invalid_voxel, voxels
 
 
-
-def NDT_score(a, b, mixed_pdf=True):
+def NDT_score(a, b, mixed_pdf=True): #-sum(pdf)
     a_array = np.array([(va.x, va.y, va.z) for va in a])
     b_array = np.array([(vb.x, vb.y, vb.z) for vb in b])
     pairs = []
@@ -216,10 +217,16 @@ def NDT_score(a, b, mixed_pdf=True):
         min_dist = dist[closest_index]
         pairs.append((i,closest_index))
     global_ndt_score = 0
+    pts_cnt=0
     for (i,j) in pairs:
         score = NDT_voxel_score(a[i], b[j], mixed_pdf)
         global_ndt_score += score
-    return global_ndt_score
+        pts_cnt += len(a[i].pts)
+    # print(f"pts in voxel:{pts_cnt}/{4096*8}")
+    ##avg per pts, and scalar to expand difference
+    scalar = 4096*8
+    avg_ndt_score_per_pts = scalar*global_ndt_score/pts_cnt
+    return avg_ndt_score_per_pts
         
 def NDT_voxel_score(a, b, mixed_pdf=True):
     if(mixed_pdf):
@@ -228,7 +235,7 @@ def NDT_voxel_score(a, b, mixed_pdf=True):
         pdf_scores = b.NDTpdf.pdf(a.pts)
     ndt_score = -np.sum(pdf_scores)
     mean_scores = np.mean(pdf_scores)
-    
+    assert ndt_score != -np.inf
     return ndt_score
 
 def adjust_covariance_eigenvalues(covariance_matrix):

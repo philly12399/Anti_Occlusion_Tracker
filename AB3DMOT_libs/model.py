@@ -415,7 +415,7 @@ class AB3DMOT(object):
 
 		NOTE: The number of objects returned may differ from the number of detections provided.
 		"""
-
+		TT=[time.time()]
 		dets, info = dets_all['dets'], dets_all['info']         # dets: N x 7, float numpy array
 	
 		if self.debug_id: print('\nframe is %s' % frame)
@@ -431,9 +431,9 @@ class AB3DMOT(object):
 
 		dets = self.process_dets(dets)
 		# tracks propagation based on velocity
-		TT1=time.time()
+		TT.append(time.time())
 		trks = self.prediction()
-		TT2=time.time()
+		TT.append(time.time())
 		## Comment for wayside (don't need)
 		# # ego motion compensation, adapt to the current frame of camera coordinate
 		# if (frame > 0) and (self.ego_com) and (self.oxts is not None):
@@ -453,12 +453,12 @@ class AB3DMOT(object):
 			if(valid_voxel == []):
 				valid_voxel = None
 			NDT_Voxels.append(valid_voxel)
-		TT3=time.time()
+		TT.append(time.time())
 		# matching
 
 		# matched, unmatched_dets, unmatched_trks, cost, affi = data_association(dets, trks, self.metric, self.thres, self.algm)
 		matched, unmatched_dets, unmatched_trks, cost, affi = data_association_philly(dets, trks, NDT_Voxels, self.track_buf, self.metric, self.thres, self.algm)
-		TT4=time.time()
+		TT.append(time.time())
   		# print_log('detections are', log=self.log, display=False)
 		# print_log(dets, log=self.log, display=False)
 		# print_log('tracklets are', log=self.log, display=False)
@@ -470,14 +470,14 @@ class AB3DMOT(object):
 
 		# update trks with matched detection measurement
 		self.update(matched, unmatched_trks, dets, info, NDT_Voxels, frame)
-		TT5=time.time()
+		TT.append(time.time())
 		# create and initialise new trackers for unmatched detections
 		new_id_list = self.birth(dets, info, unmatched_dets, NDT_Voxels, frame)
-		TT6=time.time()
+		TT.append(time.time())
 
 		# output existing valid tracks
 		results = self.output()
-		TT7=time.time()
+		TT.append(time.time())
 		# assert(len(results)== len(pcd))
 		if len(results) > 0: results = [np.concatenate(results)]		# h,w,l,x,y,z,theta, ID, other info, confidence
 		else:            	 results = [np.empty((0, 15))]
@@ -495,5 +495,5 @@ class AB3DMOT(object):
 		for result_index in range(len(results)):
 			print_log(results[result_index][:, :8], log=self.log, display=False)
 			print_log('', log=self.log, display=False)
-		# print(f"KF_pred_time:{TT2-TT1}; NDT_Voxelize_time:{TT3-TT2}; DA_time:{TT4-TT3}; update_time:{TT5-TT4}; birth_time:{TT6-TT5}; output_time:{TT7-TT6};")
+		# print(f"KF_pred_time:{TT[2]-TT[1]}; NDT_Voxelize_time:{TT[3]-TT[2]}; DA_time:{TT[4]-TT[3]}; update_time:{TT[5]-TT[4]}; birth_time:{TT[6]-TT[5]}; output_time:{TT[7]-TT[6]};")
 		return results, affi

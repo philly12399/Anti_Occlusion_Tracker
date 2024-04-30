@@ -81,18 +81,19 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num):
             sys.stdout.flush()
 
             # tracking by detection
-            TT1=time.time()
+            TT=[time.time()]
+            TT.append(time.time())
             dets_frame = get_frame_det(seq_dets, frame, format=cfg.dataset)
-            TT2=time.time()
+            TT.append(time.time())
             ## load PCDs
             pcd_info_frame = pcd_info_seq[frame-min_frame]
             pcd_frame = load_dense_byinfo(pcd_info_frame) 
-            TT3=time.time()
+            TT.append(time.time())
             assert len(pcd_frame) == len(dets_frame['dets'])
-            # print(f"load_pcd_time:{TT3-TT2}s ; load_label_time:{TT2-TT1}s")
+            # print(f"load_pcd_time:{TT[3]-TT[2]}s ; load_label_time:{TT[2]-TT[1]}s")
             since = time.time()
             results, affi = tracker.track(dets_frame, frame, seq_name, pcd_info_frame, pcd_frame)
-            print(f"tracker_total_time:{time.time()-since}s")
+            # print(f"tracker_total_time:{time.time()-since}s")
             total_time += time.time() - since
 
             # saving affinity matrix, between the past frame and current frame

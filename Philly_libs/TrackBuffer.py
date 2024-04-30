@@ -18,7 +18,7 @@ class TrackBuffer():
 		self.pcd_of_track = None
 		self.KF_init(bbox3D)
 		##UPDATE
-		self.update_buffer(bbox3D,pcd,time_stamp)
+		self.update_buffer(bbox3D, pcd, time_stamp)
 
 	def get_velocity(self):
 		# return the object velocity in the state
