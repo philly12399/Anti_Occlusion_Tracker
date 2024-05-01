@@ -247,7 +247,7 @@ class AB3DMOT(object):
 			pred.append(Box3D.array2bbox(new_kf.x.reshape((-1))[:7]))
 		return pred
 
-	def update(self, matched, unmatched_trks, dets, info, voxels, frame):
+	def update(self, matched, unmatched_trks, dets, info, voxels, pcd, frame):
 		# update matched trackers with assigned detections
 		dets = copy.copy(dets)
 		for t, trk in enumerate(self.track_buf):
@@ -284,21 +284,21 @@ class AB3DMOT(object):
 
 				trk.kf.x[3] = self.within_range(trk.kf.x[3])
 				trk.info = info[d, :][0]
-				trk.update_buffer(bbox3d, voxels[d[0]], frame)
+				trk.update_buffer(bbox3d, voxels[d[0]], pcd[d[0]], frame)
 			else:
 				trk.match = False
 			# debug use only
 			# else:
 				# print('track ID %d is not matched' % trk.id)
 
-	def birth(self, dets, info, unmatched_dets, voxels , frame):
+	def birth(self, dets, info, unmatched_dets, voxels, pcd, frame):
 		# create and initialise new trackers for unmatched detections
 		# dets = copy.copy(dets)
 		assert len(dets) == len(voxels)
 		new_id_list = list()					# new ID generated for unmatched detections
 		for i in unmatched_dets:        			# a scalar of index
 			bbox3d = Box3D.bbox2array(dets[i])
-			trk = TrackBuffer(info[i, :], self.ID_count[0], bbox3d, voxels[i], frame, self.buffer_size)
+			trk = TrackBuffer(info[i, :], self.ID_count[0], bbox3d, voxels[i], pcd[i], frame, self.buffer_size)
 			self.track_buf.append(trk)
 			new_id_list.append(trk.id)
 			# print('track ID %s has been initialized due to new detection' % trk.id)
@@ -469,10 +469,10 @@ class AB3DMOT(object):
 		# print_log(affi, log=self.log, display=False)
 
 		# update trks with matched detection measurement
-		self.update(matched, unmatched_trks, dets, info, NDT_Voxels, frame)
+		self.update(matched, unmatched_trks, dets, info, NDT_Voxels, pcd, frame)
 		TT.append(time.time())
 		# create and initialise new trackers for unmatched detections
-		new_id_list = self.birth(dets, info, unmatched_dets, NDT_Voxels, frame)
+		new_id_list = self.birth(dets, info, unmatched_dets, NDT_Voxels, pcd, frame)
 		TT.append(time.time())
 
 		# output existing valid tracks

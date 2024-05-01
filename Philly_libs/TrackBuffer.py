@@ -1,8 +1,9 @@
 import numpy as np
 from filterpy.kalman import KalmanFilter
 import copy
+# from Philly_libs.NDT import update_pcd_of_track
 class TrackBuffer():
-	def __init__(self, info, ID, bbox3D, pcd, time_stamp, buffer_size): 
+	def __init__(self, info, ID, bbox3D, voxel, pcd, time_stamp, buffer_size): 
 		self.id = ID
 		self.info = info
 		self.time_since_update = 0
@@ -18,19 +19,30 @@ class TrackBuffer():
 		self.pcd_of_track = None
 		self.KF_init(bbox3D)
 		##UPDATE
-		self.update_buffer(bbox3D, pcd, time_stamp)
+		self.update_buffer(bbox3D, voxel, pcd, time_stamp)
 
 	def get_velocity(self):
 		# return the object velocity in the state
 		return self.kf.x[7:]
 
-	def update_buffer(self, bbox, voxel, time_stamp):
+	def update_buffer(self, bbox, voxel, pcd, time_stamp):
 		self.bbox.append(bbox)
 		self.NDT_voxels.append(voxel)
 		self.time_stamp.append(time_stamp)
 		self.kf_buffer.append(self.kf)
 		self.match = True
-  
+
+       #暫定,每次把pcd加入後,再downsample到4096
+		if(pcd is not None):
+			if(self.pcd_of_track is None):
+				self.pcd_of_track = copy.copy(pcd)
+			else:
+				self.pcd_of_track = np.row_stack((self.pcd_of_track,pcd))
+			if(self.pcd_of_track.shape[0] >4096):	
+				randomi = np.arange(self.pcd_of_track.shape[0])
+				np.random.shuffle(randomi)
+				self.pcd_of_track = self.pcd_of_track[randomi[:4096]]
+			
 	def KF_init(self, bbox3D):
 		#Kalman filter
 		self.kf = KalmanFilter(dim_x=10, dim_z=7)       
