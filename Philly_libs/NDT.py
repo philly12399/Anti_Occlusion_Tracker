@@ -150,11 +150,9 @@ def NDT_voxelize(pcd, det, cfg=None):
     # origin = voxel_size/2 #第一個voxel中心在原點往右上平移voxelsize/2
     if(cfg.overlap):
         stride = voxel_size/2
-        neighbor = [-1,0,1]
         scalar=8
     else:
         stride = voxel_size
-        neighbor = [0]
         scalar=1
         
     l, w, h = box.l, box.w, box.h
@@ -179,16 +177,25 @@ def NDT_voxelize(pcd, det, cfg=None):
     #regular
     incnt=0
     for p in pcd:
+        
         i,j,k = int((p[0]+l/2+ (voxel_size/2-origin))/(stride)), int((p[1]+w/2+ (voxel_size/2-origin))/(stride)), int((p[2]+h/2+ (voxel_size/2-origin))/(stride))   
-        for di in neighbor:
-            for dj in neighbor:
-                for dk in neighbor:                        
-                    idx = (i+di)*wn*hn + (j+dj)*hn + (k+dk)
-                    if(idx >= 0 and idx < len(voxels)):
-                        if(in_bbox(p,voxels[idx])):                                
+        idx0 = i*wn*hn + j*hn + k
+        if(not cfg.overlap):
+            if(in_bbox(p,voxels[idx0])):
+                voxels[idx0].pts.append(p)
+                incnt+=1
+                continue   
+        else:   
+            direct = voxels[idx0].get_direction(p)
+            direct = [[0,direct[0]],[0,direct[1]],[0,direct[2]]]
+            for di in direct[0]:
+                for dj in direct[1]:
+                    for dk in  direct[2]:  
+                        idx = int((i+di)*wn*hn + (j+dj)*hn + (k+dk))
+                        if(in_bbox(p,voxels[idx])):  
                             voxels[idx].pts.append(p)
-                            incnt+=1   
-                        
+                            incnt+=1 
+
     assert scalar*len(pcd) ==  incnt
     TT.append(time.time())
 
@@ -202,6 +209,7 @@ def NDT_voxelize(pcd, det, cfg=None):
         else:
             invalid_voxel.append(v)
     TT.append(time.time())
+    print(f"allocate_PTS_voxel_time:{TT[3]-TT[2]}s, with {len(pcd)} points")
     # print(f"Voxel_init_time:{TT[2]-TT[1]}s, allocate_PTS_voxel_time:{TT[3]-TT[2]}s, calculate_NDT_time:{TT[4]-TT[3]}s")
     return valid_voxel, invalid_voxel, voxels
 
@@ -288,6 +296,9 @@ class NDT_Voxel:
             self.valid = False
     def __str__(self):
         return f"x:{self.x}, y:{self.y}, z:{self.z}, l:{self.l}, w:{self.w}, h:{self.h}, pts:{len(self.pts)}, mean:{self.mean}, cov:{self.cov}"
+   
+    def get_direction(self, p):
+        return np.sign([p[0]-self.x,p[1]-self.y,p[2]-self.z])
     
 def draw_NDT_voxel(vs, NUM_SAMPLES=100):
     random_sample_pts = []

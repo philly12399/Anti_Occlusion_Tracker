@@ -1,1 +1,1 @@
-python3 main.py --dataset Wayside --frame 10
+python3 main.py --dataset Wayside --frame 20

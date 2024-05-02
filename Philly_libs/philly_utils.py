@@ -54,10 +54,18 @@ def draw_pts(pts):
 	pcd = o3d.geometry.PointCloud()
 	pcd.points = o3d.utility.Vector3dVector(pts)
 	o3d.visualization.draw_geometries([pcd,], width=800, height=500)
-	
 
+def random_sample(n,c):
+	randomi = np.arange(n)
+	np.random.shuffle(randomi)
+	return randomi[:c]
 
-	
+def random_drop(arr,r):
+    assert r<=1 and r>=0
+    r=1-r
+    randomi = random_sample(len(arr),int(len(arr)*r))
+    return arr[randomi]
+    
 # def drawbox(vis,box,drawpts=False,color=[0,0,0]):
 #     b = o3d.geometry.OrientedBoundingBox()
 #     b.center = [box['x'],box['y'],box['z']]

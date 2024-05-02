@@ -1,7 +1,9 @@
 import numpy as np
 from filterpy.kalman import KalmanFilter
 import copy
+from Philly_libs.philly_utils import *
 # from Philly_libs.NDT import update_pcd_of_track
+
 class TrackBuffer():
 	def __init__(self, info, ID, bbox3D, voxel, pcd, time_stamp, buffer_size): 
 		self.id = ID
@@ -17,6 +19,7 @@ class TrackBuffer():
 		self.status = []
 		self.buffer_size = buffer_size
 		self.pcd_of_track = None
+		self.voxel_of_track = None
 		self.KF_init(bbox3D)
 		##UPDATE
 		self.update_buffer(bbox3D, voxel, pcd, time_stamp)
@@ -32,16 +35,11 @@ class TrackBuffer():
 		self.kf_buffer.append(self.kf)
 		self.match = True
 
-       #暫定,每次把pcd加入後,再downsample到4096
 		if(pcd is not None):
-			if(self.pcd_of_track is None):
-				self.pcd_of_track = copy.copy(pcd)
-			else:
-				self.pcd_of_track = np.row_stack((self.pcd_of_track,pcd))
-			if(self.pcd_of_track.shape[0] >4096):	
-				randomi = np.arange(self.pcd_of_track.shape[0])
-				np.random.shuffle(randomi)
-				self.pcd_of_track = self.pcd_of_track[randomi[:4096]]
+			self.pcd_of_track = POT_append_downsample(self.pcd_of_track, pcd)
+			# if(self.id == 3):
+			# 	print(time_stamp,self.id)
+			# 	draw_pts(self.pcd_of_track)
 			
 	def KF_init(self, bbox3D):
 		#Kalman filter
@@ -94,4 +92,11 @@ def KF_predict(kf,time=1):
 	new_kf.predict()
 	return new_kf
 		
-		
+def POT_append_downsample(old_pcds, pcd, alpha=0.7):
+	if(old_pcds is None):
+		old_pcds = pcd
+	else:			
+		old_pcds = random_drop(old_pcds, alpha)
+		old_pcds = np.row_stack((old_pcds,pcd))	
+		old_pcds = old_pcds[random_sample(len(old_pcds),4096)]
+	return old_pcds
