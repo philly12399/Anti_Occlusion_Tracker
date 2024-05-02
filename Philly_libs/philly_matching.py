@@ -33,7 +33,11 @@ def compute_pcd_affinity(NDT_Voxels, track_buf):
         if(voxels is None):
             continue
         for t, trkbuf in enumerate(track_buf):
-            rep_of_trk = trkbuf.NDT_voxels[-1]
+            if(trkbuf.NDT_updated):
+                rep_of_trk = trkbuf.NDT_of_track
+                # rep_of_trk = trkbuf.NDT_voxels[-1]
+            else:
+                rep_of_trk = None
             if(rep_of_trk is None):
                 continue
             aff_matrix[v, t] = NDT_score(voxels, rep_of_trk)
@@ -94,17 +98,18 @@ def data_association(dets, trks, NDT_voxels, trk_buf, metric, threshold, algm='g
     if len(trks) == 0: 
         return np.empty((0, 2), dtype=int), np.arange(len(dets)), [], 0, aff_matrix
     if len(dets) == 0: 
-        return np.empty((0, 2), dtype=int), [], np.arange(len(trks)), 0, aff_matrix		
+        return np.empty((0, 2), dtype=int), [], np.arange(len(trks)), 0, aff_matrix		            
     
     # compute affinity matrix
     aff_matrix = compute_bbox_affinity(dets, trks, metric)
     pcd_affinity_matrix = compute_pcd_affinity(NDT_voxels, trk_buf)
-    
     # association based on the affinity matrix
     
     matched_indices,_ = optimize_matching(-aff_matrix, algm)
     # print(matched_indices)
     pcd_matched_indices, pcd_cost = optimize_matching(pcd_affinity_matrix, 'hungar')
+    # print(matched_indices,pcd_matched_indices)
+    
     # print(pcd_affinity_matrix)
     # print(pcd_matched_indices1,c1)
     # print(pcd_matched_indices2,c2)

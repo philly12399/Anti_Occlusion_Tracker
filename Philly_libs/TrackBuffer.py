@@ -11,15 +11,18 @@ class TrackBuffer():
 		self.time_since_update = 0
 		self.hits = 1  
   
-		self.bbox = []
+		self.bbox = [] #x,y,z,ry,l,w,h
 		self.NDT_voxels = []
 		self.time_stamp = []
 		self.kf_buffer = []
 		self.match = True
 		self.status = []
 		self.buffer_size = buffer_size
+  
 		self.pcd_of_track = None
-		self.voxel_of_track = None
+		self.NDT_of_track = None
+		self.NDT_updated = False
+  
 		self.KF_init(bbox3D)
 		##UPDATE
 		self.update_buffer(bbox3D, voxel, pcd, time_stamp)
@@ -37,10 +40,15 @@ class TrackBuffer():
 
 		if(pcd is not None):
 			self.pcd_of_track = POT_append_downsample(self.pcd_of_track, pcd)
+			self.NDT_updated = False # pcd update, so NDT need recalculate
 			# if(self.id == 3):
 			# 	print(time_stamp,self.id)
 			# 	draw_pts(self.pcd_of_track)
-			
+   
+	def update_NDT(self,NDT):
+		self.NDT_of_track = NDT
+		self.NDT_updated = True
+
 	def KF_init(self, bbox3D):
 		#Kalman filter
 		self.kf = KalmanFilter(dim_x=10, dim_z=7)       

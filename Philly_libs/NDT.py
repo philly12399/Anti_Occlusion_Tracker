@@ -134,11 +134,11 @@ def test(track_root='./output_bytrackid/car_mark_all_rotxy'):
         break
         
 
-def NDT_voxelize(pcd, det, cfg=None):
+def NDT_voxelize(pcd, det, cfg=None): # 只用到det lwh
     TT=[time.time()]
     TT.append(time.time())
     if(pcd is None):
-        return [],[],[]
+        return None,None,None
     
     voxel_size, overlap, min_pts_voxel, noise = 0.5, True, 5, 0.05
     if(cfg is not None):
@@ -209,7 +209,7 @@ def NDT_voxelize(pcd, det, cfg=None):
         else:
             invalid_voxel.append(v)
     TT.append(time.time())
-    print(f"allocate_PTS_voxel_time:{TT[3]-TT[2]}s, with {len(pcd)} points")
+    # print(f"allocate_PTS_voxel_time:{TT[3]-TT[2]}s, with {len(pcd)} points")
     # print(f"Voxel_init_time:{TT[2]-TT[1]}s, allocate_PTS_voxel_time:{TT[3]-TT[2]}s, calculate_NDT_time:{TT[4]-TT[3]}s")
     return valid_voxel, invalid_voxel, voxels
 
