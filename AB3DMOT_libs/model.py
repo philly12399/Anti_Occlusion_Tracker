@@ -12,6 +12,8 @@ from Philly_libs.NDT import NDT_voxelize,draw_NDT_voxel
 from xinshuo_miscellaneous import print_log
 from xinshuo_io import mkdir_if_missing
 import time
+from multiprocessing import Pool
+import pdb
 np.set_printoptions(suppress=True, precision=3)
 
 # A Baseline of 3D Multi-Object Tracking
@@ -293,7 +295,7 @@ class AB3DMOT(object):
 
     def birth(self, dets, info, unmatched_dets, voxels, pcd, frame):
         # create and initialise new trackers for unmatched detections
-        # dets = copy.copy(dets)
+        dets = copy.copy(dets)
         assert len(dets) == len(voxels)
         new_id_list = list()					# new ID generated for unmatched detections
         for i in unmatched_dets:        			# a scalar of index
@@ -442,25 +444,43 @@ class AB3DMOT(object):
         # 	img = os.path.join(self.img_dir, f'{frame:06d}.png')
         # 	save_path = os.path.join(self.vis_dir, f'{frame:06d}.jpg'); mkdir_if_missing(save_path)
         # 	self.visualization(img, dets, trks, self.calib, self.hw, save_path)
+        
         TT0=time.time()
-        ###NDT of det
+        ## For Multi threading 
         NDT_Voxels = []
-        for i in range(len(dets)):
-            valid_voxel,invalid_voxel,all_voxel = NDT_voxelize(pcd[i],dets[i],self.NDT_cfg)
-            # draw_NDT_voxel(valid_voxel)
-            if(valid_voxel == []):  valid_voxel = None
-            NDT_Voxels.append(valid_voxel)
+        MT_pcd = copy.copy(pcd)
+        MT_dets = copy.copy(dets)
+        update_tid=[]
+        ## some trk don't need voxelize again
+        for i,t in enumerate(self.track_buf):
+            if(t.NDT_updated == False and t.pcd_of_track is not None): 
+                mean_box = Box3D.array2bbox(np.append([0,0,0,0],np.mean(t.bbox,0)[-3:]))   
+                MT_pcd.append(t.pcd_of_track)
+                update_tid.append(i)
+                MT_dets.append(mean_box)
+                
+        ## Multi threading                  
+        if(len(MT_pcd)>0):
+            ## Multi threading init
+            pool = [Pool() for _ in range(len(MT_pcd))]
+            ## Multi threading and run NDT_voxelize(non blocking)
+            thread=[pool[i].apply_async(NDT_voxelize, (MT_pcd[i],MT_dets[i],self.NDT_cfg))  for i in range(len(MT_pcd))]
+            result=[None for _ in range(len(MT_pcd))]
+            ## Collect result(blocking)
+            for i in range(len(MT_pcd)):
+                result[i],_,_ = thread[i].get(timeout=50)  #valid,invalid,all ; collect valid only
+            ## Clean  pool
+            for p in pool:  p.close() 
+            ## Update result for  det/trk
+            for i in range(len(MT_pcd)):
+                if(i < len(pcd)): ##det
+                    NDT_Voxels.append(result[i])
+                else: ##track
+                    t = self.track_buf[update_tid[i-len(pcd)]]
+                    t.update_NDT(result[i])
+                    
         TT1=time.time()
         
-        ##Update NDT of track
-        for t in self.track_buf:
-            if(t.NDT_updated == False and t.pcd_of_track is not None):                
-                mean_box = Box3D.array2bbox(np.append([0,0,0,0],np.mean(t.bbox,0)[-3:]))
-                valid_voxel,invalid_voxel,all_voxel = NDT_voxelize(t.pcd_of_track, mean_box, self.NDT_cfg)
-                if(valid_voxel == []): valid_voxel = None
-                t.update_NDT(valid_voxel)
-                # draw_NDT_voxel(t.NDT_of_track)
-        TT2=time.time()
         # matching
 
         # matched, unmatched_dets, unmatched_trks, cost, affi = data_association(dets, trks, self.metric, self.thres, self.algm)
@@ -499,5 +519,7 @@ class AB3DMOT(object):
         for result_index in range(len(results)):
             print_log(results[result_index][:, :8], log=self.log, display=False)
             print_log('', log=self.log, display=False)
-        print(f"DET_NDT_Voxelize_time:{TT1-TT0}; Track_NDT_Voxelize_time:{TT2-TT1};DA_time:{TT3-TT2};")
+        # print(f"MT_NDT_Voxelize_timetime:{TT1-TT0}, with len {len(MT_pcd)}; DA_time:{TT3-TT1};")
+            
+        # print(f"DET_NDT_Voxelize_time:{TT1-TT0}; Track_NDT_Voxelize_time:{TT2-TT1};DA_time:{TT3-TT2};")
         return results, affi
