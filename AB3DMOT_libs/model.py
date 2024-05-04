@@ -45,9 +45,14 @@ class AB3DMOT(object):
         self.label_format = None
         if('label_format' in cfg):
             self.label_format = cfg.label_format
+            
         self.buffer_size = 30
         if('buffer_size' in cfg):
             self.buffer_size = cfg.buffer_size
+            
+        self.history = 5
+        if('history' in cfg):
+            self.history = cfg.history
         Box3D.set_label_format(self.label_format)
         ##NDT
         self.NDT_cfg = None
@@ -222,31 +227,42 @@ class AB3DMOT(object):
         img = img.resize((hw['image'][1], hw['image'][0]))
         img.save(save_path)
 
-    def prediction(self):
+    def prediction(self, history = 5):
         # get predicted locations from existing tracks
 
         pred = []
         for t in range(len(self.track_buf)):
             # propagate locations
-            
             trk = self.track_buf[t]
-            new_kf = KF_predict(trk.kf,1)
-
-            if trk.id == self.debug_id:
-                print('\n before prediction')
-                print(trk.kf.x.reshape((-1)))
-                print('\n current velocity')
-                print(trk.get_velocity())
-    
-            if trk.id == self.debug_id:
-                print('After prediction')
-                print(new_kf.x.reshape((-1)))
-            
-            new_kf.x[3] = self.within_range(new_kf.x[3])
-            trk.kf = new_kf
+            pred_of_trk=[]      
+            for i, kf in enumerate(reversed(trk.kf_buffer[-history:])):
+                new_kf = KF_predict(kf,i)                
+                new_kf.x[3] = self.within_range(new_kf.x[3])
+                pred_of_trk.append(new_kf)
+                
+            trk.kf = pred_of_trk[0] # newset kf
+            for i, p in enumerate(pred_of_trk): #postprocess
+                pred_of_trk[i] = Box3D.array2bbox(p.x.reshape((-1))[:7])
+                
+            while(len(pred_of_trk)<history): # fill with None
+                pred_of_trk.append(None)
+            assert len(pred_of_trk) == history
             # update statistics
             trk.time_since_update += 1 		
-            pred.append(Box3D.array2bbox(new_kf.x.reshape((-1))[:7]))
+            pred.append(pred_of_trk)
+            # if trk.id == 1:
+            #     for p in pred_of_trk:
+            #         print(p.__str__())
+            # if trk.id == self.debug_id:
+            #     print('\n before prediction')
+            #     print(trk.kf.x.reshape((-1)))
+            #     print('\n current velocity')
+            #     print(trk.get_velocity())
+
+            # if trk.id == self.debug_id:
+            #     print('After prediction')
+            #     print(new_kf.x.reshape((-1)))    
+        # pred = [p[0] for p in pred]     
         return pred
 
     def update(self, matched, unmatched_trks, dets, info, voxels, pcd, frame):
@@ -315,7 +331,7 @@ class AB3DMOT(object):
         results = []
         for trk in reversed(self.track_buf):
             # change format from [x,y,z,theta,l,w,h] to [h,w,l,x,y,z,theta]
-            if(trk.match ==False): #unmatch就用kf的
+            if(trk.match == False): #unmatch就用kf的
                 d = Box3D.array2bbox(trk.kf.x[:7].reshape((7, ))) 
             else:#match 就用det
                 d = Box3D.array2bbox(trk.bbox[-1])     # bbox location self
@@ -433,7 +449,7 @@ class AB3DMOT(object):
 
         dets = self.process_dets(dets)
         # tracks propagation based on velocity
-        trks = self.prediction()
+        trks = self.prediction(history = self.history)
         ## Comment for wayside (don't need)
         # # ego motion compensation, adapt to the current frame of camera coordinate
         # if (frame > 0) and (self.ego_com) and (self.oxts is not None):
@@ -478,13 +494,15 @@ class AB3DMOT(object):
                 else: ##track
                     t = self.track_buf[update_tid[i-len(pcd)]]
                     t.update_NDT(result[i])
-                    
+                    # if(t.id == 3):   
+                    #     print(frame)                     
+                    #     draw_NDT_voxel(t.NDT_of_track)
         TT1=time.time()
         
         # matching
 
         # matched, unmatched_dets, unmatched_trks, cost, affi = data_association(dets, trks, self.metric, self.thres, self.algm)
-        matched, unmatched_dets, unmatched_trks, cost, affi = data_association_philly(dets, trks, NDT_Voxels, self.track_buf, self.metric, self.thres, self.algm)
+        matched, unmatched_dets, unmatched_trks, cost, affi = data_association_philly(dets, trks, NDT_Voxels, self.track_buf, self.metric, self.thres, self.algm, history = self.history)
         TT3=time.time()
           # print_log('detections are', log=self.log, display=False)
         # print_log(dets, log=self.log, display=False)

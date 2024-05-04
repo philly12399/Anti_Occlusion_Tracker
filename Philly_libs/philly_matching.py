@@ -5,11 +5,13 @@ from AB3DMOT_libs.dist_metrics import iou, dist3d, dist_ground, m_distance
 from Philly_libs.NDT import NDT_score
 def compute_bbox_affinity(dets, trks, metric):
     # compute affinity matrix
-
+    INVALID_VALUE=1e10
     aff_matrix = np.zeros((len(dets), len(trks)), dtype=np.float32)
     for d, det in enumerate(dets):
         for t, trk in enumerate(trks):
-
+            if(trk is None):
+                aff_matrix[d, t] = INVALID_VALUE
+                continue
             # choose to use different distance metrics
             if 'iou' in metric:    	  dist_now = iou(det, trk, metric)            
             # elif metric == 'm_dis':   dist_now = -m_distance(det, trk, trk_inv_inn_matrices[t])
@@ -83,7 +85,7 @@ def optimize_matching(matrix, algm='greedy'): #find min
         cost += matrix[m1][m2]
     return matched_indices, cost
   
-def data_association(dets, trks, NDT_voxels, trk_buf, metric, threshold, algm='greedy'):   
+def data_association(dets, trks, NDT_voxels, trk_buf, metric, threshold, algm='greedy', history = 5):   
     """
     Assigns detections to tracked object
 
@@ -99,9 +101,12 @@ def data_association(dets, trks, NDT_voxels, trk_buf, metric, threshold, algm='g
         return np.empty((0, 2), dtype=int), np.arange(len(dets)), [], 0, aff_matrix
     if len(dets) == 0: 
         return np.empty((0, 2), dtype=int), [], np.arange(len(trks)), 0, aff_matrix		            
-    
     # compute affinity matrix
-    aff_matrix = compute_bbox_affinity(dets, trks, metric)
+    trks_T = [[row[j] for row in trks] for j in range(len(trks[0]))]
+    
+    aff_matrix_history = [compute_bbox_affinity(dets, trks_T[h], metric) for h in range(history)]
+
+    aff_matrix = aff_matrix_history[0]
     pcd_affinity_matrix = compute_pcd_affinity(NDT_voxels, trk_buf)
     # association based on the affinity matrix
     
