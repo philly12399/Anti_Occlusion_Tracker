@@ -9,11 +9,13 @@ from AB3DMOT_libs.vis import vis_obj
 from Philly_libs.philly_matching import data_association as data_association_philly
 from Philly_libs.TrackBuffer import TrackBuffer , KF_predict
 from Philly_libs.NDT import NDT_voxelize,draw_NDT_voxel
+from Philly_libs.philly_io import read_pkl
 from xinshuo_miscellaneous import print_log
 from xinshuo_io import mkdir_if_missing
 import time
 from multiprocessing import Pool
 import pdb
+import pickle
 np.set_printoptions(suppress=True, precision=3)
 
 # A Baseline of 3D Multi-Object Tracking
@@ -58,7 +60,9 @@ class AB3DMOT(object):
         self.NDT_cfg = None
         if('NDT_cfg' in cfg):
             self.NDT_cfg = cfg.NDT_cfg
-        
+        self.NDT_out_path = None
+        if('NDT_out_path' in cfg):
+            self.NDT_out_path = cfg.NDT_out_path
           # debug
         # self.debug_id = 2
         self.debug_id = None
@@ -338,7 +342,7 @@ class AB3DMOT(object):
             d = Box3D.bbox2array_raw(d)
             
             if ((trk.time_since_update < self.max_age) and (trk.hits >= self.min_hits or self.frame_count <= self.min_hits)):      
-                if(trk.match ==True):
+                if(trk.match ==True): ## match才輸出
                     results.append(np.concatenate((d, [trk.id], trk.info)).reshape(1, -1)) 		
             num_trks -= 1
 
@@ -460,7 +464,7 @@ class AB3DMOT(object):
         # 	img = os.path.join(self.img_dir, f'{frame:06d}.png')
         # 	save_path = os.path.join(self.vis_dir, f'{frame:06d}.jpg'); mkdir_if_missing(save_path)
         # 	self.visualization(img, dets, trks, self.calib, self.hw, save_path)
-        
+        NDT_LOAD_PKL=True
         TT0=time.time()
         ## For Multi threading 
         NDT_Voxels = []
@@ -475,29 +479,50 @@ class AB3DMOT(object):
                 update_tid.append(i)
                 MT_dets.append(mean_box)
                 
-        ## Multi threading                  
-        if(len(MT_pcd)>0):
-            ## Multi threading init
-            pool = [Pool() for _ in range(len(MT_pcd))]
-            ## Multi threading and run NDT_voxelize(non blocking)
-            thread=[pool[i].apply_async(NDT_voxelize, (MT_pcd[i],MT_dets[i],self.NDT_cfg))  for i in range(len(MT_pcd))]
-            result=[None for _ in range(len(MT_pcd))]
-            ## Collect result(blocking)
-            for i in range(len(MT_pcd)):
-                result[i],_,_ = thread[i].get(timeout=50)  #valid,invalid,all ; collect valid only
-            ## Clean  pool
-            for p in pool:  p.close() 
+        ## Multi threading 
+        if(NDT_LOAD_PKL):
+            TT2=time.time()
             ## Update result for  det/trk
             for i in range(len(MT_pcd)):
                 if(i < len(pcd)): ##det
-                    NDT_Voxels.append(result[i])
+                    NDTV = read_pkl(os.path.join(self.NDT_out_path, f"{frame}_{i}_det"))
+                    NDT_Voxels.append(NDTV)
                 else: ##track
+                    NDTV = read_pkl(os.path.join(self.NDT_out_path, f"{frame}_{update_tid[i-len(pcd)]}_trk"))                  
                     t = self.track_buf[update_tid[i-len(pcd)]]
-                    t.update_NDT(result[i])
-                    # if(t.id == 3):   
-                    #     print(frame)                     
-                    #     draw_NDT_voxel(t.NDT_of_track)
+                    t.update_NDT(NDTV)
+                # draw_NDT_voxel(NDTV)
+        else:            
+            if(len(MT_pcd)>0):
+                ## Multi threading init
+                pool = [Pool() for _ in range(len(MT_pcd))]
+                ## Multi threading and run NDT_voxelize(non blocking)
+                thread=[pool[i].apply_async(NDT_voxelize, (MT_pcd[i],MT_dets[i],self.NDT_cfg))  for i in range(len(MT_pcd))]
+                result=[None for _ in range(len(MT_pcd))]
+                ## Collect result(blocking)
+                for i in range(len(MT_pcd)):
+                    result[i],_,_ = thread[i].get(timeout=50)  #valid,invalid,all ; collect valid only
+                ## Clean  pool
+                for p in pool:  p.close() 
+                ## Update result for  det/trk
+                for i in range(len(MT_pcd)):
+                    if(i < len(pcd)): ##det
+                        NDT_Voxels.append(result[i])
+                    else: ##track
+                        t = self.track_buf[update_tid[i-len(pcd)]]
+                        t.update_NDT(result[i])
+                        # if(t.id == 3):   
+                        #     print(frame)                     
+                        #     draw_NDT_voxel(t.NDT_of_track)
+            for i, NDTV in enumerate(NDT_Voxels):
+                with open(os.path.join(self.NDT_out_path, f"{frame}_{i}_det"), 'wb') as file:
+                    pickle.dump(NDTV, file)
+            for i, tid in enumerate(update_tid):
+                with open(os.path.join(self.NDT_out_path, f"{frame}_{tid}_trk"), 'wb') as file:
+                    pickle.dump(self.track_buf[tid].NDT_of_track, file)
+            
         TT1=time.time()
+        
         
         # matching
 
@@ -538,6 +563,6 @@ class AB3DMOT(object):
             print_log(results[result_index][:, :8], log=self.log, display=False)
             print_log('', log=self.log, display=False)
         # print(f"MT_NDT_Voxelize_timetime:{TT1-TT0}, with len {len(MT_pcd)}; DA_time:{TT3-TT1};")
-            
+        print(f"LOAD_NDT_TIME:{TT1-TT2}")
         # print(f"DET_NDT_Voxelize_time:{TT1-TT0}; Track_NDT_Voxelize_time:{TT2-TT1};DA_time:{TT3-TT2};")
         return results, affi

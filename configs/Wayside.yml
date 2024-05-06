@@ -23,4 +23,5 @@
     buffer_size                  : 30
     history                      : 5
     # ------------------NDT
-    NDT_cfg                          : {'voxel_size': 0.5, 'overlap': True, 'min_pts_voxel': 5, 'noise': 0.05}
+    NDT_cfg                      : {'voxel_size': 0.5, 'overlap': True, 'min_pts_voxel': 5, 'noise': 0.05}
+    NDT_out_path                 : "/home/philly12399/thesis/AB3DMOT/data/Wayside/NDT_pkl/"
