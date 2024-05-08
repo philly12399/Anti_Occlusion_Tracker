@@ -74,7 +74,7 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num):
             # but should output an N x 0 affinity for consistency
 
             # logging
-            print_str = 'processing %s %s: %d/%d, %d/%d  \n' % (result_sha, seq_name, seq_count, \
+            print_str = 'processing %s %s: %d/%d, %d/%d   \r' % (result_sha, seq_name, seq_count, \
                 len(seq_eval), frame, max_frame)
             # print_str = 'processing %s %s: %d/%d, %d/%d   \r' % (result_sha, seq_name, seq_count, \
             #     len(seq_eval), frame, max_frame)
@@ -88,12 +88,16 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num):
             TT.append(time.time())
             ## load PCDs
             pcd_info_frame = pcd_info_seq[frame-min_frame]
-            pcd_frame = load_dense_byinfo(pcd_info_frame) 
+            if(cfg.NDT_flag):
+                pcd_frame = load_dense_byinfo(pcd_info_frame)
+            else:
+                pcd_frame = [None for i in range(len(dets_frame['dets']))]
+                
             TT.append(time.time())
             assert len(pcd_frame) == len(dets_frame['dets'])
             # print(f"load_pcd_time:{TT[3]-TT[2]}s ; load_label_time:{TT[2]-TT[1]}s")
             since = time.time()
-            results, affi = tracker.track(dets_frame, frame, seq_name, pcd_info_frame, pcd_frame)
+            results, affi = tracker.track(dets_frame, frame, seq_name, pcd_frame)
             # print(f"tracker_total_time:{time.time()-since}s")
             total_time += time.time() - since
 

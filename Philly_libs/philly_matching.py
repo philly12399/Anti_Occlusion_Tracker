@@ -43,7 +43,6 @@ def multiframe_bbox_affinity(aff_history, history, weight):
     aff_weight[mask] = 1
     
     aff_sum = np.divide(aff_sum, aff_weight)
-    pdb.set_trace()
     return aff_sum
             
 def compute_pcd_affinity(NDT_Voxels, track_buf): #SMALLER BETTER
@@ -128,32 +127,16 @@ def data_association(dets, trks, NDT_voxels, trk_buf, metric, threshold, algm='g
     aff_matrix_history = [compute_bbox_affinity(dets, trks_T[h], metric) for h in range(history)]
     
     #weight setting
-    WEIGHT = [40,30,20,15,10]
+    WEIGHT = [1,1,1,1,1]
     while len(WEIGHT)<history:
-        WEIGHT.append(5)
+        WEIGHT.append(0)
         
     aff_matrix_mul = multiframe_bbox_affinity(aff_matrix_history, history, WEIGHT)
-    aff_matrix = aff_matrix_history[0]
+    aff_matrix = aff_matrix_mul
+    # aff_matrix = aff_matrix_history[0]
     
-    pcd_affinity_matrix = compute_pcd_affinity(NDT_voxels, trk_buf)
-    # association based on the affinity matrix
-    matched_indices,_ = optimize_matching(-aff_matrix, algm)
-    # print(matched_indices)
-    pcd_matched_indices, pcd_cost = optimize_matching(pcd_affinity_matrix, 'hungar')
-    # print(matched_indices,pcd_matched_indices)
-    
-    # print(pcd_affinity_matrix)
-    # print(pcd_matched_indices1,c1)
-    # print(pcd_matched_indices2,c2)
-    
-    # else:
-    # 	cost_list, hun_list = best_k_matching(-aff_matrix, hypothesis)
-
-    # compute total fdcost
-    cost = 0
-    for row_index in range(matched_indices.shape[0]):
-        cost -= aff_matrix[matched_indices[row_index, 0], matched_indices[row_index, 1]]
-
+    ## association based on the affinity matrix
+    matched_indices, cost_bbox = optimize_matching(-aff_matrix, algm)
     # save for unmatched objects
     unmatched_dets = []
     for d, det in enumerate(dets):
@@ -161,7 +144,6 @@ def data_association(dets, trks, NDT_voxels, trk_buf, metric, threshold, algm='g
     unmatched_trks = []
     for t, trk in enumerate(trks):
         if (t not in matched_indices[:, 1]): unmatched_trks.append(t)
-
     # filter out matches with low affinity
     matches = []
     for m in matched_indices:
@@ -172,5 +154,17 @@ def data_association(dets, trks, NDT_voxels, trk_buf, metric, threshold, algm='g
     if len(matches) == 0: 
         matches = np.empty((0, 2),dtype=int)
     else: matches = np.concatenate(matches, axis=0)
-
-    return matches, np.array(unmatched_dets), np.array(unmatched_trks), cost, aff_matrix
+    
+    # unmatched_dets = sorted(unmatched_dets)
+    # unmatched_trks = sorted(unmatched_trks)
+    
+    # unmatched_NDT = [NDT_voxels[i] for i in unmatched_dets]
+    # unmatched_trkbuf = [trk_buf[j] for j in unmatched_trks]
+    # pcd_affinity_matrix = compute_pcd_affinity(unmatched_NDT, unmatched_trkbuf) 
+    # pcd_matched_indices, pcd_cost = optimize_matching(pcd_affinity_matrix, 'hungar')
+    
+    # pcd_affinity_matrix = compute_pcd_affinity(NDT_voxels, trk_buf) 
+    # pcd_matched_indices, pcd_cost = optimize_matching(pcd_affinity_matrix, 'hungar')
+    
+    
+    return matches, np.array(unmatched_dets), np.array(unmatched_trks), cost_bbox, aff_matrix

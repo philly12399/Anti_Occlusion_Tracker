@@ -103,6 +103,7 @@ def save_results(res, save_trk_file, eval_file, det_id2str, frame, score_thresho
 	# box3d in the format of h, w, l, x, y, z, theta in camera coordinate
 	bbox3d_tmp, id_tmp, ori_tmp, type_tmp, bbox2d_tmp_trk, conf_tmp = \
 		res[0:7], res[7], res[8], det_id2str[res[9]], res[10:14], res[14] 		
+	frame = int(res[15])
 	if(format == "Wayside"):
 		tmp = bbox3d_tmp[0]
 		bbox3d_tmp[0] = bbox3d_tmp[2]

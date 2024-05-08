@@ -18,7 +18,7 @@ class TrackBuffer():
 		self.match = True
 		self.status = []
 		self.buffer_size = buffer_size
-  
+		self.output_buf = []
 		self.pcd_of_track = None
 		self.NDT_of_track = None
 		self.NDT_updated = False

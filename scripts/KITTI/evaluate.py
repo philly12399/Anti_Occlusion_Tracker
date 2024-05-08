@@ -1264,7 +1264,7 @@ def main(gt_path, t_path, out_path, exp_name):
     mail = mailpy.Mail("")
     eval_3diou, eval_2diou = True, False   
     thres_list = [0.25, 0.5]
-    cls_list = ["car", "cyclist"]
+    cls_list = ["car"]
     label_format_list = ["Wayside","Wayside"] #[GT format,Track format]
     num_hypo = 1
     max_occlusion = 4
