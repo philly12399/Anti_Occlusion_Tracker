@@ -1066,10 +1066,10 @@ class stat:
         self.fn_list.append(data['fn'])
         self.recall_list.append(data['recall'])
 
-    def output(self):
-        self.sAMOTA = self.sMOTA / (num_sample_pts - 1)
-        self.amota = self.mota / (num_sample_pts - 1)
-        self.amotp = self.motp / (num_sample_pts - 1)
+    def output(self, num):
+        self.sAMOTA = self.sMOTA / num
+        self.amota = self.mota / num
+        self.amotp = self.motp / num
     
     def print_summary(self):
         summary = ""
@@ -1183,8 +1183,9 @@ def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path
         filename = os.path.join(out_path, "summary_%s_average_%s.txt" % (c, suffix))
         dump = open(filename, "w+")
         stat_meter = stat(t_sha=result_sha, cls=c, suffix=suffix, dump=dump)
+        print("No threshold",file=dump)
         e.compute3rdPartyMetrics()
-
+        e.saveToStats(dump) 
         # evaluate the mean average metrics
         best_mota, best_threshold = 0, -10000
         threshold_list, recall_list = e.getThresholds(e.scores, e.num_gt)
@@ -1206,8 +1207,8 @@ def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path
         # print(len(threshold_list), len(recall_list))
         e.compute3rdPartyMetrics(best_threshold)
         e.saveToStats(dump) 
-
-        stat_meter.output()
+    
+        stat_meter.output(len(threshold_list))
         summary = stat_meter.print_summary()
         
         stat_meter.plot(save_dir=out_path)

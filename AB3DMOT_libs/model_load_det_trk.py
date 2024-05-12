@@ -57,22 +57,12 @@ class AB3DMOT(object):
             self.history = cfg.history
         Box3D.set_label_format(self.label_format)
         ##NDT
-        self.NDT_flag=True
-        if('NDT_flag' in cfg):
-            self.NDT_flag = cfg.NDT_flag
-            
         self.NDT_cfg = None
         if('NDT_cfg' in cfg):
             self.NDT_cfg = cfg.NDT_cfg
-            
         self.NDT_out_path = None
         if('NDT_out_path' in cfg):
             self.NDT_out_path = cfg.NDT_out_path
-            det_path=os.path.join(self.NDT_out_path, f"det_{self.cat}")
-            trk_path=os.path.join(self.NDT_out_path, f"trk_{self.cat}")            
-            os.system(f"mkdir -p {det_path}")
-            os.system(f"mkdir -p {trk_path}")
-
           # debug
         # self.debug_id = 2
         self.debug_id = None
@@ -127,7 +117,7 @@ class AB3DMOT(object):
                 else: assert False, 'error'
         elif cfg.dataset == 'Wayside':
             # if cfg.det_name == 'pvrcnn':				# tuned for PV-RCNN detections
-            if cat == 'Car': 			algm, metric, thres, min_hits, max_age = 'hungar', 'giou_3d', -0.2, 3, 10		
+            if cat == 'Car': 			algm, metric, thres, min_hits, max_age = 'hungar', 'giou_3d', -0.2, 3, 2		
             elif cat == 'Cyclist': 		algm, metric, thres, min_hits, max_age = 'hungar', 'dist_3d', 2, 3, 4
             else: assert False, 'error'
         else: assert False, 'no such dataset'
@@ -241,7 +231,7 @@ class AB3DMOT(object):
         img = img.resize((hw['image'][1], hw['image'][0]))
         img.save(save_path)
 
-    def prediction(self, frame, history = 5):
+    def prediction(self, history = 5):
         # get predicted locations from existing tracks
 
         pred = []
@@ -249,11 +239,8 @@ class AB3DMOT(object):
             # propagate locations
             trk = self.track_buf[t]
             pred_of_trk=[]      
-            kf_history = list(reversed(trk.kf_buffer[-history:]))
-            time_history =  list(reversed(trk.time_stamp[-history:]))
-            for i, kf in enumerate(kf_history):
-                dt = frame - time_history[i]
-                new_kf = KF_predict(kf,dt)                
+            for i, kf in enumerate(reversed(trk.kf_buffer[-history:])):
+                new_kf = KF_predict(kf,i)                
                 new_kf.x[3] = self.within_range(new_kf.x[3])
                 pred_of_trk.append(new_kf)
                 
@@ -341,7 +328,7 @@ class AB3DMOT(object):
 
         return new_id_list
 
-    def output(self, frame): #death
+    def output(self): #death
         # output exiting tracks that have been stably associated, i.e., >= min_hits
         # and also delete tracks that have appeared for a long time, i.e., >= max_age
         num_trks = len(self.track_buf)
@@ -353,13 +340,10 @@ class AB3DMOT(object):
             else:#match 就用det
                 d = Box3D.array2bbox(trk.bbox[-1])     # bbox location self
             d = Box3D.bbox2array_raw(d)
-            npdet = np.concatenate((d, [trk.id], trk.info, [frame])).reshape(1, -1)
-            trk.output_buf.append(npdet)
+            
             if ((trk.time_since_update < self.max_age) and (trk.hits >= self.min_hits or self.frame_count <= self.min_hits)):      
-                if(trk.match == True): ## match才輸出
-                    for o in trk.output_buf:
-                        results.append(o)
-                    trk.output_buf = []
+                if(trk.match ==True): ## match才輸出
+                    results.append(np.concatenate((d, [trk.id], trk.info)).reshape(1, -1)) 		
             num_trks -= 1
 
             # deadth, remove dead tracklet
@@ -440,7 +424,7 @@ class AB3DMOT(object):
 
         return affi
 
-    def track(self, dets_all, frame, seq_name, pcd):
+    def track(self, dets_all, frame, seq_name, pcd_info, pcd):
         
         """
         Params:
@@ -469,7 +453,7 @@ class AB3DMOT(object):
 
         dets = self.process_dets(dets)
         # tracks propagation based on velocity
-        trks = self.prediction(frame, history = self.history)
+        trks = self.prediction(history = self.history)
         ## Comment for wayside (don't need)
         # # ego motion compensation, adapt to the current frame of camera coordinate
         # if (frame > 0) and (self.ego_com) and (self.oxts is not None):
@@ -480,72 +464,71 @@ class AB3DMOT(object):
         # 	img = os.path.join(self.img_dir, f'{frame:06d}.png')
         # 	save_path = os.path.join(self.vis_dir, f'{frame:06d}.jpg'); mkdir_if_missing(save_path)
         # 	self.visualization(img, dets, trks, self.calib, self.hw, save_path)
-        if(self.NDT_flag):
-            NDT_LOAD_PKL=False
-            ## For Multi threading 
-            NDT_Voxels = []
-            MT_pcd = copy.copy(pcd)
-            MT_dets = copy.copy(dets)
-            update_tid=[]
-            ## some trk don't need voxelize again
-            for i,t in enumerate(self.track_buf):
-                if(t.NDT_updated == False and t.pcd_of_track is not None): 
-                    mean_box = Box3D.array2bbox(np.append([0,0,0,0],np.mean(t.bbox,0)[-3:]))   
-                    MT_pcd.append(t.pcd_of_track)
-                    update_tid.append(i)
-                    MT_dets.append(mean_box)
-                    
-            ## Multi threading 
-            if(NDT_LOAD_PKL):
+        NDT_LOAD_PKL=True
+        TT0=time.time()
+        ## For Multi threading 
+        NDT_Voxels = []
+        MT_pcd = copy.copy(pcd)
+        MT_dets = copy.copy(dets)
+        update_tid=[]
+        ## some trk don't need voxelize again
+        for i,t in enumerate(self.track_buf):
+            if(t.NDT_updated == False and t.pcd_of_track is not None): 
+                mean_box = Box3D.array2bbox(np.append([0,0,0,0],np.mean(t.bbox,0)[-3:]))   
+                MT_pcd.append(t.pcd_of_track)
+                update_tid.append(i)
+                MT_dets.append(mean_box)
+                
+        ## Multi threading 
+        if(NDT_LOAD_PKL):
+            TT2=time.time()
+            ## Update result for  det/trk
+            for i in range(len(MT_pcd)):
+                if(i < len(pcd)): ##det
+                    NDTV = read_pkl(os.path.join(self.NDT_out_path, f"{frame}_{i}_det"))
+                    NDT_Voxels.append(NDTV)
+                else: ##track
+                    NDTV = read_pkl(os.path.join(self.NDT_out_path, f"{frame}_{update_tid[i-len(pcd)]}_trk"))                  
+                    t = self.track_buf[update_tid[i-len(pcd)]]
+                    t.update_NDT(NDTV)
+                # draw_NDT_voxel(NDTV)
+        else:            
+            if(len(MT_pcd)>0):
+                ## Multi threading init
+                pool = [Pool() for _ in range(len(MT_pcd))]
+                ## Multi threading and run NDT_voxelize(non blocking)
+                thread=[pool[i].apply_async(NDT_voxelize, (MT_pcd[i],MT_dets[i],self.NDT_cfg))  for i in range(len(MT_pcd))]
+                result=[None for _ in range(len(MT_pcd))]
+                ## Collect result(blocking)
+                for i in range(len(MT_pcd)):
+                    result[i],_,_ = thread[i].get(timeout=50)  #valid,invalid,all ; collect valid only
+                ## Clean  pool
+                for p in pool:  p.close() 
                 ## Update result for  det/trk
                 for i in range(len(MT_pcd)):
                     if(i < len(pcd)): ##det
-                        NDTV = read_pkl(os.path.join(self.NDT_out_path, f"det_{self.cat}/{frame}_{i}"))
-                        NDT_Voxels.append(NDTV)
+                        NDT_Voxels.append(result[i])
                     else: ##track
-                        NDTV = read_pkl(os.path.join(self.NDT_out_path, f"trk_{self.cat}/{frame}_{update_tid[i-len(pcd)]}"))                  
                         t = self.track_buf[update_tid[i-len(pcd)]]
-                        t.update_NDT(NDTV)
-                    # draw_NDT_voxel(NDTV)
-            else:            
-                if(len(MT_pcd)>0):
-                    ## Multi threading init
-                    pool = [Pool() for _ in range(len(MT_pcd))]
-                    ## Multi threading and run NDT_voxelize(non blocking)
-                    thread=[pool[i].apply_async(NDT_voxelize, (MT_pcd[i],MT_dets[i],self.NDT_cfg))  for i in range(len(MT_pcd))]
-                    result=[None for _ in range(len(MT_pcd))]
-                    ## Collect result(blocking)
-                    for i in range(len(MT_pcd)):
-                        result[i],_,_ = thread[i].get(timeout=50)  #valid,invalid,all ; collect valid only
-                    ## Clean  pool
-                    for p in pool:  p.close() 
-                    ## Update result for  det/trk
-                    for i in range(len(MT_pcd)):
-                        if(i < len(pcd)): ##det
-                            NDT_Voxels.append(result[i])
-                        else: ##track
-                            t = self.track_buf[update_tid[i-len(pcd)]]
-                            t.update_NDT(result[i])
-                            # if(t.id == 3):   
-                            #     print(frame)                     
-                            #     draw_NDT_voxel(t.NDT_of_track)
-                
-                for i, NDTV in enumerate(NDT_Voxels):
-                    with open(os.path.join(self.NDT_out_path, f"det_{self.cat}/{frame}_{i}"), 'wb') as file:
-                        pickle.dump(NDTV, file)
-                for i, tid in enumerate(update_tid):
-                    with open(os.path.join(self.NDT_out_path, f"trk_{self.cat}/{frame}_{tid}"), 'wb') as file:
-                        pickle.dump(self.track_buf[tid].NDT_of_track, file)
-        else:
-            NDT_Voxels = [[] for i in range(len(dets))]   
+                        t.update_NDT(result[i])
+                        # if(t.id == 3):   
+                        #     print(frame)                     
+                        #     draw_NDT_voxel(t.NDT_of_track)
+            for i, NDTV in enumerate(NDT_Voxels):
+                with open(os.path.join(self.NDT_out_path, f"{frame}_{i}_det"), 'wb') as file:
+                    pickle.dump(NDTV, file)
+            for i, tid in enumerate(update_tid):
+                with open(os.path.join(self.NDT_out_path, f"{frame}_{tid}_trk"), 'wb') as file:
+                    pickle.dump(self.track_buf[tid].NDT_of_track, file)
+            
+        TT1=time.time()
         
         
         # matching
 
         # matched, unmatched_dets, unmatched_trks, cost, affi = data_association(dets, trks, self.metric, self.thres, self.algm)
         matched, unmatched_dets, unmatched_trks, cost, affi = data_association_philly(dets, trks, NDT_Voxels, self.track_buf, self.metric, self.thres, self.algm, history = self.history)
-        
-            
+        TT3=time.time()
           # print_log('detections are', log=self.log, display=False)
         # print_log(dets, log=self.log, display=False)
         # print_log('tracklets are', log=self.log, display=False)
@@ -561,10 +544,10 @@ class AB3DMOT(object):
         new_id_list = self.birth(dets, info, unmatched_dets, NDT_Voxels, pcd, frame)
 
         # output existing valid tracks
-        results = self.output(frame)
+        results = self.output()
         # assert(len(results)== len(pcd))
         if len(results) > 0: results = [np.concatenate(results)]		# h,w,l,x,y,z,theta, ID, other info, confidence
-        else:            	 results = [np.empty((0, 16))]
+        else:            	 results = [np.empty((0, 15))]
         self.id_now_output = results[0][:, 7].tolist()					# only the active tracks that are outputed
 
         # post-processing affinity to convert to the affinity between resulting tracklets
@@ -580,6 +563,6 @@ class AB3DMOT(object):
             print_log(results[result_index][:, :8], log=self.log, display=False)
             print_log('', log=self.log, display=False)
         # print(f"MT_NDT_Voxelize_timetime:{TT1-TT0}, with len {len(MT_pcd)}; DA_time:{TT3-TT1};")
-        # print(f"LOAD_NDT_TIME:{TT1-TT2}")
+        print(f"LOAD_NDT_TIME:{TT1-TT2}")
         # print(f"DET_NDT_Voxelize_time:{TT1-TT0}; Track_NDT_Voxelize_time:{TT2-TT1};DA_time:{TT3-TT2};")
         return results, affi
