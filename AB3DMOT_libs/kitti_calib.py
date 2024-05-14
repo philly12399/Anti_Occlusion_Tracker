@@ -180,9 +180,15 @@ class Calibration(object):
     def rect_to_imu(self, pts_rect):
         pts_velo = self.project_rect_to_velo(pts_rect)
         pts_imu  = self.velo_to_imu(pts_velo)
-
         return pts_imu
-
+    
+    def rect_to_velo_rot(self, rot): #camera roty to velo rotz
+        rz = np.pi - rot +np.pi/2       
+        rz = (rz + np.pi) % (2 * np.pi) - np.pi
+        assert rz <= np.pi and rz >= -np.pi        
+        return rz
+    def velo_to_rect_rot(self, rot): #camera roty to velo rotz
+        return  self.rect_to_velo_rot(rot)
     # =========================== 
     # ------- 3d to 2d ---------- 
     # =========================== 
@@ -223,3 +229,5 @@ class Calibration(object):
     def project_image_to_velo(self, uv_depth):
         pts_3d_rect = self.project_image_to_rect(uv_depth)
         return self.project_rect_to_velo(pts_3d_rect)
+    
+    
