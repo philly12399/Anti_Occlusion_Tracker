@@ -10,6 +10,7 @@ from Philly_libs.philly_matching import data_association as data_association_phi
 from Philly_libs.TrackBuffer import TrackBuffer , KF_predict
 from Philly_libs.NDT import NDT_voxelize,draw_NDT_voxel
 from Philly_libs.philly_io import read_pkl
+from Philly_libs.philly_utils import inverse_transform
 from xinshuo_miscellaneous import print_log
 from xinshuo_io import mkdir_if_missing
 import time
@@ -73,6 +74,7 @@ class AB3DMOT(object):
             os.system(f"mkdir -p {det_path}")
             os.system(f"mkdir -p {trk_path}")
 
+        self.ego_com_list=[]
           # debug
         # self.debug_id = 2
         self.debug_id = None
@@ -191,16 +193,17 @@ class AB3DMOT(object):
 
     def ego_motion_compensation(self, frame, trks):
         # inverse ego motion compensation, move trks from the last frame of coordinate to the current frame for matching
-        
         from AB3DMOT_libs.kitti_oxts import get_ego_traj, egomotion_compensation_ID
         assert len(self.track_buf) == len(trks), 'error'
         ego_xyz_imu, ego_rot_imu, left, right = get_ego_traj(self.oxts, frame, 1, 1, only_fut=True, inverse=True) 
+        self.ego_com_list.append([ego_xyz_imu, ego_rot_imu, left, right])       
+        
         for index in range(len(self.track_buf)):
-            trk_tmp = trks[index]
+            ego_xyz_imu, ego_rot_imu, left, right = self.ego_com_list[-1]
+            trk_tmp = trks[index][0]
             xyz = np.array([trk_tmp.x, trk_tmp.y, trk_tmp.z]).reshape((1, -1))
             compensated = egomotion_compensation_ID(xyz, self.calib, ego_rot_imu, ego_xyz_imu, left, right)
             trk_tmp.x, trk_tmp.y, trk_tmp.z = compensated[0]
-
             # update compensated state in the Kalman filter
             try:
                 self.track_buf[index].kf.x[:3] = copy.copy(compensated).reshape((-1))
@@ -208,7 +211,24 @@ class AB3DMOT(object):
                 self.track_buf[index].kf.x[:3] = copy.copy(compensated).reshape((-1, 1))
 
         return trks
-
+    
+    def ego_motion_compensation_test(self, frame, dets):
+        # inverse ego motion compensation, move trks from the last frame of coordinate to the current frame for matching
+        from AB3DMOT_libs.kitti_oxts import get_ego_traj, egomotion_compensation_ID
+        
+        i,j,k=8,79,3
+        o=[self.oxts[i],self.oxts[j],self.oxts[k]] #T_C->O,T_B->O,T_A->O
+        oi=[inverse_transform(o[0]),inverse_transform(o[1]),inverse_transform(o[2])] #T_O->C,T_O->B,T_O->A
+        
+        T_A_C = np.matmul(oi[0],o[2])  #T_A->C  = T_O->C * T_A->O =  (T_C->O)inv * T_A->O 
+        # print(T_A_C)
+        
+        T_A_B = np.matmul(oi[1],o[2])
+        T_B_C = np.matmul(oi[0],o[1])  
+        T_A_C2=np.matmul(T_B_C,T_A_B) #T_A->C  =  T_B->C * T_A->B 
+        assert (np.allclose(T_A_C,T_A_C2))
+        # pdb.set_trace()   
+    
     def visualization(self, img, dets, trks, calib, hw, save_path, height_threshold=0):
         # visualize to verify if the ego motion compensation is done correctly
         # ideally, the ego-motion compensated tracks should overlap closely with detections
@@ -470,11 +490,15 @@ class AB3DMOT(object):
         dets = self.process_dets(dets)
         # tracks propagation based on velocity
         trks = self.prediction(frame, history = self.history)
+        old_trks = trks
+        # pdb.set_trace()
+        if (frame ==1) and (self.ego_com) and (self.oxts is not None):    
+            self.ego_motion_compensation_test(frame,dets)
         ## Comment for wayside (don't need)
         # # ego motion compensation, adapt to the current frame of camera coordinate
-        # if (frame > 0) and (self.ego_com) and (self.oxts is not None):
-        # 	trks = self.ego_motion_compensation(frame, trks)
-
+        if (frame > 0) and (self.ego_com) and (self.oxts is not None):
+            trks = self.ego_motion_compensation(frame, trks)
+        
         # # visualization
         # if self.vis and (self.vis_dir is not None):
         # 	img = os.path.join(self.img_dir, f'{frame:06d}.png')

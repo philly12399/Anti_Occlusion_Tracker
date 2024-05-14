@@ -130,11 +130,9 @@ def get_ego_traj(imu_poses, frame, pref, futf, inverse=False, only_fut=False):
         start = max(frame-pref+1, 0)
         end   = min(frame+futf+1, num_frames)
         index = [*range(start, end)]
-    
     # compute frame offset due to sequence boundary
     left  = start - (frame-pref+1)
     right = (frame+futf+1) - end
-
     # compute relative transition compared to the current frame of the ego
     all_world_xyz = imu_poses[index, :3, 3]    # N x 3, only translation, frame = 10-19 for fut only (0-19 for all)
     cur_world_xyz = imu_poses[frame]                        # 4 x 4, frame = 9
@@ -147,6 +145,8 @@ def get_ego_traj(imu_poses, frame, pref, futf, inverse=False, only_fut=False):
     cur_world_rot = imu_poses[frame, :3, :3]                # 3 x 3, frame = 9
     T_world2imu_rot = np.linalg.inv(cur_world_rot)        
     all_rot_list = list()
+
+
     for frame in range(all_world_rot.shape[0]):
         all_rot_tmp = all_world_rot[frame].dot(T_world2imu_rot)   # 3 x 3
         all_rot_list.append(all_rot_tmp)
@@ -163,7 +163,6 @@ def egomotion_compensation_ID(traj_id, calib, ego_rot_imu, ego_xyz_imu, left, ri
 
     # convert trajectory data from rect to IMU for ego-motion compensation
     traj_id_imu = calib.rect_to_imu(traj_id)        # less_pre x 3
-
     if mask is not None:
         good_index = np.where(mask == 1)[0]
         good_index = (good_index - left).tolist()
@@ -178,7 +177,8 @@ def egomotion_compensation_ID(traj_id, calib, ego_rot_imu, ego_xyz_imu, left, ri
     if mask is not None:
         traj_id_imu += ego_xyz_imu[good_index, :]   # les_frames x 3, TODO, need to test which is correct
     else:
-        traj_id_imu += ego_xyz_imu[:traj_id_imu.shape[0], :]   # les_frames x 3
+        # print(ego_xyz_imu[:traj_id_imu.shape[0], :])
+        traj_id_imu += ego_xyz_imu[:traj_id_imu.shape[0], :]   # les_frames x 3 
 
     # convert trajectory data back to rect coordinate for visualization
     traj_id_rect = calib.imu_to_rect(traj_id_imu)

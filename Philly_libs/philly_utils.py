@@ -76,3 +76,20 @@ def random_drop(arr,r):
 #         p = o3d.geometry.PointCloud()
 #         p.points = o3d.utility.Vector3dVector(box["pts"])
 #         vis.add_geometry(p)
+def inverse_transform(T):
+    # 提取旋轉部分和平移部分
+    R = T[:3, :3]
+    t = T[:3, 3]
+    
+    # 計算旋轉矩陣的逆矩陣
+    R_inv = R.T
+    
+    # 計算平移向量的逆變換
+    t_inv = -R_inv.dot(t)
+    
+    # 組合逆變換矩陣
+    T_inv = np.eye(4)
+    T_inv[:3, :3] = R_inv
+    T_inv[:3, 3] = t_inv
+    
+    return T_inv

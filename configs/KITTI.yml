@@ -7,7 +7,7 @@ save_root                    : ./results/KITTI
 dataset                      : KITTI      # KITTI
 split                        : val        # val, test
 det_name                     : pointrcnn  # name of the detector [pointrcnn, pvrcnn]
-cat_list                     : ['Car', 'Pedestrian', 'Cyclist']
+cat_list                     : ['Car'] #['Car', 'Pedestrian', 'Cyclist']
 
 score_threshold              : -10000     # filter out tracklet with low confidence if necessary, default no filtering here but do it in trk_conf_threshold.py
 num_hypo                     : 1          # >1 to allow multi-hypothesis tracking
@@ -15,4 +15,14 @@ num_hypo                     : 1          # >1 to allow multi-hypothesis trackin
 # --------------- model.py
 ego_com                      : true      # turn on only slightly reduce speed but increase a lot for performance
 vis                          : false       # only for debug or visualization purpose, will significantly reduce speed
-affi_pro                     : true
+affi_pro                     : false
+#---------------- addition
+label_format                 : Kitti      # Kitti, Waymo, nuscenes
+pcd_db_root                  : ""
+class_map                    : {} #lower case
+buffer_size                  : 30
+history                      : 1
+# ------------------NDT
+NDT_flag                     : False
+NDT_cfg                      : {'voxel_size': 0.5, 'overlap': True, 'min_pts_voxel': 5, 'noise': 0.05}
+NDT_out_path                 : ""

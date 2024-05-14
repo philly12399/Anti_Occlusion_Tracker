@@ -30,7 +30,7 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num):
     if(os.path.exists(det_root) == False):
         det_root = os.path.join('./data', cfg.dataset, 'detection', result_sha)
     ##PCD INFO
-    if('pcd_db_root' in cfg):
+    if(cfg.NDT_flag and 'pcd_db_root' in cfg):
         pcd_db_root = cfg.pcd_db_root
         pcd_info = read_pkl(os.path.join(pcd_db_root, 'info.pkl'))
         pcd_db = os.path.join(pcd_db_root, 'gt_database')
@@ -39,7 +39,7 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num):
     class_map = {}
     if('class_map' in cfg):
         class_map = cfg.class_map
-
+    ##SEQ SETTING
     subfolder, det_id2str, hw, seq_eval, data_root = get_subfolder_seq(cfg.dataset, cfg.split)
     trk_root = os.path.join(data_root, 'tracking')
     save_dir = os.path.join(cfg.save_root, result_sha + '_H%d' % cfg.num_hypo); mkdir_if_missing(save_dir)
@@ -66,7 +66,8 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num):
         min_frame, max_frame = int(frame_list[0]), int(frame_list[-1])
 
         ##Pcd info
-        pcd_info_seq = pcd_info_seq_preprocess(pcd_info[seq_name], pcd_db, min_frame, max_frame, class_map, cat)
+        if(cfg.NDT_flag):
+            pcd_info_seq = pcd_info_seq_preprocess(pcd_info[seq_name], pcd_db, min_frame, max_frame, class_map, cat)
         for frame in range(min_frame, max_frame + 1):
             if(frame >= frame_num and args.frame!=-1):
                 break
@@ -74,7 +75,7 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num):
             # but should output an N x 0 affinity for consistency
 
             # logging
-            print_str = 'processing %s %s: %d/%d, %d/%d   \r' % (result_sha, seq_name, seq_count, \
+            print_str = 'processing %s %s: %d/%d, %d/%d   \n' % (result_sha, seq_name, seq_count, \
                 len(seq_eval), frame, max_frame)
             # print_str = 'processing %s %s: %d/%d, %d/%d   \r' % (result_sha, seq_name, seq_count, \
             #     len(seq_eval), frame, max_frame)
@@ -87,8 +88,8 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num):
             dets_frame = get_frame_det(seq_dets, frame, format=cfg.dataset)
             TT.append(time.time())
             ## load PCDs
-            pcd_info_frame = pcd_info_seq[frame-min_frame]
             if(cfg.NDT_flag):
+                pcd_info_frame = pcd_info_seq[frame-min_frame]                
                 pcd_frame = load_dense_byinfo(pcd_info_frame)
             else:
                 pcd_frame = [None for i in range(len(dets_frame['dets']))]
