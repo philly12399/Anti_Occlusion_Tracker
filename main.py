@@ -79,8 +79,8 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num):
                 len(seq_eval), frame, max_frame)
             # print_str = 'processing %s %s: %d/%d, %d/%d   \r' % (result_sha, seq_name, seq_count, \
             #     len(seq_eval), frame, max_frame)
-            sys.stdout.write(print_str)
-            sys.stdout.flush()
+            # sys.stdout.write(print_str)
+            # sys.stdout.flush()
 
             # tracking by detection
             TT=[time.time()]

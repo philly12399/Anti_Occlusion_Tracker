@@ -78,7 +78,8 @@ class AB3DMOT(object):
           # debug
         # self.debug_id = 2
         self.debug_id = None
-
+        self.debug_id_new=168
+        self.debugger=[]
     def get_param(self, cfg, cat):
         # get parameters for each dataset
 
@@ -199,6 +200,7 @@ class AB3DMOT(object):
         self.ego_com_list.append([ego_xyz_imu, ego_rot_imu, left, right])       
         
         for index in range(len(self.track_buf)):
+           
             ego_xyz_imu, ego_rot_imu, left, right = self.ego_com_list[-1]
             trk_tmp = trks[index][0]
             xyz = np.array([trk_tmp.x, trk_tmp.y, trk_tmp.z]).reshape((1, -1))
@@ -209,9 +211,35 @@ class AB3DMOT(object):
                 self.track_buf[index].kf.x[:3] = copy.copy(compensated).reshape((-1))
             except:
                 self.track_buf[index].kf.x[:3] = copy.copy(compensated).reshape((-1, 1))
-
+            if(self.track_buf[index].id == self.debug_id_new):
+                self.debugger.append([xyz,compensated])
         return trks
-    
+    def move_to_origin_axis(self, frame,det):
+        ry_rect=det[3]         
+        
+        det = np.array(det[:3]).reshape((1, -1))
+        det_imu = self.calib.rect_to_imu(det)
+        T = self.oxts[frame]
+        R = self.oxts[frame][:3,:3]
+        X = np.append(det_imu,[1],)
+        X_ORIGIN_imu=np.matmul(T,X)[:3].reshape((1, -1))  
+        X_ORIGIN_rect = self.calib.imu_to_rect(X_ORIGIN_imu)
+        
+        rz_imu =self.calib.rect_to_velo_rot(ry_rect)
+        ROT = np.array([np.cos(rz_imu),np.sin(rz_imu),0])
+        ROT_ORIGIN_imu=np.matmul(R,ROT)[:2]
+        ROT_ORIGIN_imu = np.arctan2(ROT_ORIGIN_imu[1],ROT_ORIGIN_imu[0])
+        ROT_ORIGIN_rect = self.calib.velo_to_rect_rot(ROT_ORIGIN_imu)
+        return X_ORIGIN_rect,ROT_ORIGIN_rect
+        # print(rz_imu/np.pi*180,ROT_ORIGIN/np.pi*180,frame)
+        
+        # print(ROT_ORIGIN_rect/np.pi*180,ROT_ORIGIN/np.pi*180,frame)
+        # print(pred)
+        # self.calib.velo_to_rect_rot(ry_imu)
+        # print(X_COM_rect,ry/np.pi*180,ry_imu/np.pi*180  )
+        # T_inv = inverse_transform(T)
+        pdb.set_trace()
+        
     def ego_motion_compensation_test(self, frame, dets):
         # inverse ego motion compensation, move trks from the last frame of coordinate to the current frame for matching
         from AB3DMOT_libs.kitti_oxts import get_ego_traj, egomotion_compensation_ID
@@ -317,7 +345,18 @@ class AB3DMOT(object):
                 # update orientation in propagated tracks and detected boxes so that they are within 90 degree
                 bbox3d = Box3D.bbox2array(dets[d[0]])
                 trk.kf.x[3], bbox3d[3] = self.orientation_correction(trk.kf.x[3], bbox3d[3])
-
+                
+                if trk.id == self.debug_id_new and self.debugger != []:
+                    pred =self.debugger[-1][0]
+                    pred_com = self.debugger[-1][1]
+                    det = np.array(bbox3d[:4])
+                                  
+                    kf = trk.kf.x[:4].T[0]
+                    a1,a2=self.move_to_origin_axis(frame,det)
+                    b1,b2=self.move_to_origin_axis(frame,kf)
+                    print(b1-a1,b2-a2)
+                    print("===========")
+                    
                 if trk.id == self.debug_id:
                     print('After ego-compoensation')
                     print(trk.kf.x.reshape((-1)))
@@ -492,8 +531,8 @@ class AB3DMOT(object):
         trks = self.prediction(frame, history = self.history)
         old_trks = trks
         # pdb.set_trace()
-        if (frame ==1) and (self.ego_com) and (self.oxts is not None):    
-            self.ego_motion_compensation_test(frame,dets)
+        # if (frame ==1) and (self.ego_com) and (self.oxts is not None):    
+        #     self.ego_motion_compensation_test(frame,dets)
         ## Comment for wayside (don't need)
         # # ego motion compensation, adapt to the current frame of camera coordinate
         if (frame > 0) and (self.ego_com) and (self.oxts is not None):
