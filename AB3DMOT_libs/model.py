@@ -10,7 +10,7 @@ from Philly_libs.philly_matching import data_association as data_association_phi
 from Philly_libs.TrackBuffer import TrackBuffer , KF_predict
 from Philly_libs.NDT import NDT_voxelize,draw_NDT_voxel
 from Philly_libs.philly_io import read_pkl
-from Philly_libs.philly_utils import inverse_transform
+from Philly_libs.kitti_utils import *
 from xinshuo_miscellaneous import print_log
 from xinshuo_io import mkdir_if_missing
 import time
@@ -48,7 +48,12 @@ class AB3DMOT(object):
         self.label_format = None
         if('label_format' in cfg):
             self.label_format = cfg.label_format
-            
+        
+        self.label_coord = "camera"
+        if('label_coord' in cfg):
+            self.label_coord = cfg.label_coord
+
+        
         self.buffer_size = 30
         if('buffer_size' in cfg):
             self.buffer_size = cfg.buffer_size
@@ -78,7 +83,7 @@ class AB3DMOT(object):
           # debug
         # self.debug_id = 2
         self.debug_id = None
-        self.debug_id_new=168
+        self.debug_id_new=1
         self.debugger=[]
     def get_param(self, cfg, cat):
         # get parameters for each dataset
@@ -164,7 +169,16 @@ class AB3DMOT(object):
             det_tmp = Box3D.array2bbox_raw(det)
             dets_new.append(det_tmp)
         return dets_new
-
+    
+    def move_dets_origin_axis(self, frame, dets):
+        dets_new = []
+        for det in dets:
+            d = [det.x, det.y, det.z, det.ry]
+            d_origin = move_to_origin_axis(self.oxts, self.calib, self.label_coord, frame, d)
+            bbox_origin = Box3D.array2bbox_raw([det.h, det.w, det.l] + d_origin)
+            dets_new.append(bbox_origin)
+        return dets_new
+    
     def within_range(self, theta):
         # make sure the orientation is within a proper range
 
@@ -211,34 +225,12 @@ class AB3DMOT(object):
                 self.track_buf[index].kf.x[:3] = copy.copy(compensated).reshape((-1))
             except:
                 self.track_buf[index].kf.x[:3] = copy.copy(compensated).reshape((-1, 1))
-            if(self.track_buf[index].id == self.debug_id_new):
-                self.debugger.append([xyz,compensated])
+
         return trks
-    def move_to_origin_axis(self, frame,det):
-        ry_rect=det[3]         
+   
         
-        det = np.array(det[:3]).reshape((1, -1))
-        det_imu = self.calib.rect_to_imu(det)
-        T = self.oxts[frame]
-        R = self.oxts[frame][:3,:3]
-        X = np.append(det_imu,[1],)
-        X_ORIGIN_imu=np.matmul(T,X)[:3].reshape((1, -1))  
-        X_ORIGIN_rect = self.calib.imu_to_rect(X_ORIGIN_imu)
-        
-        rz_imu =self.calib.rect_to_velo_rot(ry_rect)
-        ROT = np.array([np.cos(rz_imu),np.sin(rz_imu),0])
-        ROT_ORIGIN_imu=np.matmul(R,ROT)[:2]
-        ROT_ORIGIN_imu = np.arctan2(ROT_ORIGIN_imu[1],ROT_ORIGIN_imu[0])
-        ROT_ORIGIN_rect = self.calib.velo_to_rect_rot(ROT_ORIGIN_imu)
-        return X_ORIGIN_rect,ROT_ORIGIN_rect
-        # print(rz_imu/np.pi*180,ROT_ORIGIN/np.pi*180,frame)
-        
-        # print(ROT_ORIGIN_rect/np.pi*180,ROT_ORIGIN/np.pi*180,frame)
-        # print(pred)
-        # self.calib.velo_to_rect_rot(ry_imu)
-        # print(X_COM_rect,ry/np.pi*180,ry_imu/np.pi*180  )
-        # T_inv = inverse_transform(T)
-        pdb.set_trace()
+    
+
         
     def ego_motion_compensation_test(self, frame, dets):
         # inverse ego motion compensation, move trks from the last frame of coordinate to the current frame for matching
@@ -344,18 +336,7 @@ class AB3DMOT(object):
 
                 # update orientation in propagated tracks and detected boxes so that they are within 90 degree
                 bbox3d = Box3D.bbox2array(dets[d[0]])
-                trk.kf.x[3], bbox3d[3] = self.orientation_correction(trk.kf.x[3], bbox3d[3])
-                
-                if trk.id == self.debug_id_new and self.debugger != []:
-                    pred =self.debugger[-1][0]
-                    pred_com = self.debugger[-1][1]
-                    det = np.array(bbox3d[:4])
-                                  
-                    kf = trk.kf.x[:4].T[0]
-                    a1,a2=self.move_to_origin_axis(frame,det)
-                    b1,b2=self.move_to_origin_axis(frame,kf)
-                    print(b1-a1,b2-a2)
-                    print("===========")
+                trk.kf.x[3], bbox3d[3] = self.orientation_correction(trk.kf.x[3], bbox3d[3])                
                     
                 if trk.id == self.debug_id:
                     print('After ego-compoensation')
@@ -408,10 +389,13 @@ class AB3DMOT(object):
         for trk in reversed(self.track_buf):
             # change format from [x,y,z,theta,l,w,h] to [h,w,l,x,y,z,theta]
             if(trk.match == False): #unmatch就用kf的
-                d = Box3D.array2bbox(trk.kf.x[:7].reshape((7, ))) 
+                det = trk.kf.x[:7].reshape((7, ))
             else:#match 就用det
-                d = Box3D.array2bbox(trk.bbox[-1])     # bbox location self
-            d = Box3D.bbox2array_raw(d)
+                det = trk.bbox[-1]
+            det[0],det[1],det[2],det[3] = move_to_frame_axis(self.oxts, self.calib, self.label_coord, frame, det[:4])
+            d = Box3D.bbox2array_raw(Box3D.array2bbox(det))
+            # if(trk.id == self.debug_id_new):
+            #     print(d[3:])
             npdet = np.concatenate((d, [trk.id], trk.info, [frame])).reshape(1, -1)
             trk.output_buf.append(npdet)
             if ((trk.time_since_update < self.max_age) and (trk.hits >= self.min_hits or self.frame_count <= self.min_hits)):      
@@ -424,7 +408,6 @@ class AB3DMOT(object):
             # deadth, remove dead tracklet
             if (trk.time_since_update >= self.max_age): 
                 self.track_buf.pop(num_trks)
-
         return results
 
     def process_affi(self, affi, matched, unmatched_dets, new_id_list):
@@ -512,7 +495,6 @@ class AB3DMOT(object):
 
         NOTE: The number of objects returned may differ from the number of detections provided.
         """
-        
         dets, info = dets_all['dets'], dets_all['info']         # dets: N x 7, float numpy array
     
         if self.debug_id: print('\nframe is %s' % frame)
@@ -527,6 +509,9 @@ class AB3DMOT(object):
         # process detection format
 
         dets = self.process_dets(dets)
+        if(self.oxts is not None):
+            dets = self.move_dets_origin_axis(frame, dets)
+        
         # tracks propagation based on velocity
         trks = self.prediction(frame, history = self.history)
         old_trks = trks
@@ -535,8 +520,8 @@ class AB3DMOT(object):
         #     self.ego_motion_compensation_test(frame,dets)
         ## Comment for wayside (don't need)
         # # ego motion compensation, adapt to the current frame of camera coordinate
-        if (frame > 0) and (self.ego_com) and (self.oxts is not None):
-            trks = self.ego_motion_compensation(frame, trks)
+        # if (frame > 0) and (self.ego_com) and (self.oxts is not None):
+        #     trks = self.ego_motion_compensation(frame, trks)
         
         # # visualization
         # if self.vis and (self.vis_dir is not None):

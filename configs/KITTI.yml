@@ -18,6 +18,7 @@ vis                          : false       # only for debug or visualization pur
 affi_pro                     : false
 #---------------- addition
 label_format                 : Kitti      # Kitti, Waymo, nuscenes
+label_coord                   : camera       # lidar or camera
 pcd_db_root                  : ""
 class_map                    : {} #lower case
 buffer_size                  : 30

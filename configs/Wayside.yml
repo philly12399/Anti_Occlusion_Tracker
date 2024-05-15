@@ -18,6 +18,7 @@
     affi_pro                     : false
     #---------------- addition
     label_format                 : Wayside      # Kitti, Waymo, nuscenes
+    label_coord                   : lidar       # lidar or camera
     pcd_db_root                  : ./data/Wayside/pcd_db/mark_dense/
     class_map                    : {"truck": "car"} #lower case
     buffer_size                  : 30
