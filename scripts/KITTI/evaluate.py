@@ -69,7 +69,6 @@ def boxoverlap(a, b, criterion="union"):
         note that this is different from the iou in dist_metrics.py because this one uses 2D 
         box rather than projected 3D boxes to compute overlap
     """
-    
     x1 = max(a.x1, b.x1)
     y1 = max(a.y1, b.y1)
     x2 = min(a.x2, b.x2)
@@ -257,19 +256,21 @@ class trackingEvaluation(object):
             ids            = []
             n_in_seq       = 0
             id_frame_cache = []
+            
+            # classes that should be loaded (ignored neighboring classes)
+            if "car" in cls.lower():
+                classes = ["car","van","truck"] # van,truck視同car 
+            elif "pedestrian" in cls.lower():
+                classes = ["pedestrian","person_sitting"]
+            else:
+                classes = [cls.lower()]
+            classes += ["dontcare"]
+            
             for line in f:
                 # KITTI tracking benchmark data format:
                 # (frame,tracklet_id,objectType,truncation,occlusion,alpha,x1,y1,x2,y2,h,w,l,X,Y,Z,ry)
                 line = line.strip()
                 fields            = line.split(" ")
-                # classes that should be loaded (ignored neighboring classes)
-                if "car" in cls.lower():
-                    classes = ["car","van","truck"] # truck視同car 
-                elif "pedestrian" in cls.lower():
-                    classes = ["pedestrian","person_sitting"]
-                else:
-                    classes = [cls.lower()]
-                classes += ["dontcare"]
                 if not any([s for s in classes if s in fields[2].lower()]):
                     continue
                 # get fields from table
@@ -512,7 +513,6 @@ class trackingEvaluation(object):
 
             seq_trajectories      = defaultdict(list)
             seq_ignored           = defaultdict(list)
-            
             # statistics over the current sequence, check the corresponding
             # variable comments in __init__ to get their meaning
             seqtp            = 0
@@ -618,14 +618,13 @@ class trackingEvaluation(object):
                                          # ignored;
                                          # this is used to avoid double counting ignored
                                          # cases, see the next loop
-                
-                for tt in t:
+                for tt in t:                    
                     ignoredtrackers[tt.track_id] = -1
                     # ignore detection if it belongs to a neighboring class or is
                     # smaller or equal to the minimum height
                     tt_height = abs(tt.y1 - tt.y2)
-                    if ((self.cls=="car" and tt.obj_type=="van") or (self.cls=="pedestrian" and tt.obj_type=="person_sitting")\
-                        or (tt_height<=self.min_height and self.eval_2diou) ) and not tt.valid:
+                    if ((tt_height<self.min_height and self.eval_2diou) ) and not tt.valid:
+                        # and (self.cls=="car" and tt.obj_type=="van") or (self.cls=="pedestrian" and tt.obj_type=="person_sitting"):
                         nignoredtracker+= 1
                         tt.ignored      = True
                         ignoredtrackers[tt.track_id] = 1
@@ -634,12 +633,12 @@ class trackingEvaluation(object):
                         # as KITTI does not provide ground truth 3D box for DontCare objects, we have to use
                         # 2D IoU here and a threshold of 0.5 for 2D IoU. 
                         overlap = boxoverlap(tt, d, "a")
-                        if overlap > 0.5 and not tt.valid:                            
+                        if overlap > self.min_overlap and not tt.valid: 
                             tt.ignored      = True
                             nignoredtracker += 1
                             ignoredtrackers[tt.track_id] = 1
                             break
-
+                # print(nignoredtracker)
                 # check for ignored FN/TP (truncation or neighboring object class)
                 ignoredfn  = 0 # the number of ignored false negatives
                 nignoredtp = 0 # the number of ignored true positives
@@ -650,16 +649,15 @@ class trackingEvaluation(object):
                 gi = 0
                 for gg in g:
                     if gg.tracker < 0:
-                        if gg.occlusion>self.max_occlusion or gg.truncation>self.max_truncation\
-                                or (self.cls=="car" and gg.obj_type=="van") or (self.cls=="pedestrian" and gg.obj_type=="person_sitting"):
+                        if gg.occlusion>self.max_occlusion or gg.truncation>self.max_truncation:
+                                # or (self.cls=="car" and gg.obj_type=="van") or (self.cls=="pedestrian" and gg.obj_type=="person_sitting"):
                             seq_ignored[gg.track_id][-1] = True                              
                             gg.ignored = True
                             ignoredfn += 1
                             
                     elif gg.tracker>=0:
-                        if gg.occlusion>self.max_occlusion or gg.truncation>self.max_truncation\
-                                or (self.cls=="car" and gg.obj_type=="van") or (self.cls=="pedestrian" and gg.obj_type=="person_sitting"):
-                            
+                        if gg.occlusion>self.max_occlusion or gg.truncation>self.max_truncation:
+                                # or (self.cls=="car" and gg.obj_type=="van") or (self.cls=="pedestrian" and gg.obj_type=="person_sitting"):
                             seq_ignored[gg.track_id][-1] = True
                             gg.ignored = True
                             nignoredtp += 1
@@ -812,7 +810,6 @@ class trackingEvaluation(object):
             self.ifns.append(seqifn)
             self.n_igts.append(seqigt)
             self.n_itrs.append(seqitr)
-        
         # compute MT/PT/ML, fragments, idswitches for all groundtruth trajectories
         n_ignored_tr_total = 0
         for seq_idx, (seq_trajectories,seq_ignored) in enumerate(zip(self.gt_trajectories, self.ign_trajectories)):
@@ -821,7 +818,7 @@ class trackingEvaluation(object):
             tmpMT, tmpML, tmpPT, tmpId_switches, tmpFragments = [0]*5
             n_ignored_tr = 0
             for g, ign_g in zip(seq_trajectories.values(), seq_ignored.values()):
-                # all frames of this gt trajectory are ignored
+                # all frames of this gt trajectory are ignored                
                 if all(ign_g):
                     n_ignored_tr+=1
                     n_ignored_tr_total+=1
@@ -1133,7 +1130,7 @@ class stat:
         self.plot_over_recall(self.fn_list, 'False Negative - Recall Curve', 'False Negative', os.path.join(save_dir, 'FN_recall_curve_%s_%s.pdf' % (self.cls, self.suffix)))
         self.plot_over_recall(self.precision_list, 'Precision - Recall Curve', 'Precision', os.path.join(save_dir, 'precision_recall_curve_%s_%s.pdf' % (self.cls, self.suffix)))
 
-def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path,out_path, max_occlusion = 4, cls_list=["car", "cyclist"], label_format_list = ["KITTI","KITTI"], eval_seq = None):
+def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path,out_path, max_occlusion = 4, max_truncation = 0, cls_list=["car", "cyclist"], label_format_list = ["KITTI","KITTI"], eval_seq = None, average = False):
     """
         Entry point for evaluation, will load the data and start evaluation for
         CAR and PEDESTRIAN if available.
@@ -1147,7 +1144,7 @@ def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path
         assert False, 'error'
     classes = []
     for c in cls_list: # 
-        e = trackingEvaluation(t_sha=result_sha,gt_path=gt_path,t_path=t_path,mail=mail,cls=c,eval_3diou=eval_3diou,eval_2diou=eval_2diou,num_hypo=num_hypo,thres=thres, max_occlusion = max_occlusion, label_format_list = label_format_list, eval_seq = eval_seq)
+        e = trackingEvaluation(t_sha=result_sha,gt_path=gt_path,t_path=t_path,mail=mail,cls=c,eval_3diou=eval_3diou,eval_2diou=eval_2diou,num_hypo=num_hypo,thres=thres, max_occlusion = max_occlusion, max_truncation = max_truncation, label_format_list = label_format_list, eval_seq = eval_seq)
         # load tracker data and check provided classes
         try:
             if not e.loadTracker():
@@ -1191,34 +1188,35 @@ def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path
         stat_meter = stat(t_sha=result_sha, cls=c, suffix=suffix, dump=dump)
         print("No threshold",file=dump)
         e.compute3rdPartyMetrics()
-        e.saveToStats(dump) 
-        # evaluate the mean average metrics
-        best_mota, best_threshold = 0, -10000
-        threshold_list, recall_list = e.getThresholds(e.scores, e.num_gt)
-        for threshold_tmp, recall_tmp in zip(threshold_list, recall_list):
-            data_tmp = dict()
+        e.saveToStats(dump)
+        if(average):
+            # evaluate the mean average metrics
+            best_mota, best_threshold = 0, -10000
+            threshold_list, recall_list = e.getThresholds(e.scores, e.num_gt)
+            for threshold_tmp, recall_tmp in zip(threshold_list, recall_list):
+                data_tmp = dict()
+                e.reset()
+                e.compute3rdPartyMetrics(threshold_tmp, recall_tmp)
+                data_tmp['mota'], data_tmp['motp'], data_tmp['moda'], data_tmp['modp'], data_tmp['precision'], \
+                data_tmp['F1'], data_tmp['fp'], data_tmp['fn'], data_tmp['recall'], data_tmp['sMOTA'] = \
+                    e.MOTA, e.MOTP, e.MODA, e.MODP, e.precision, e.F1, e.fp, e.fn, e.recall, e.sMOTA
+                stat_meter.update(data_tmp)
+                mota_tmp = e.MOTA
+                if mota_tmp > best_mota: 
+                    best_threshold = threshold_tmp
+                    best_mota = mota_tmp
+                e.saveToStats(dump, threshold_tmp, recall_tmp) 
             e.reset()
-            e.compute3rdPartyMetrics(threshold_tmp, recall_tmp)
-            data_tmp['mota'], data_tmp['motp'], data_tmp['moda'], data_tmp['modp'], data_tmp['precision'], \
-            data_tmp['F1'], data_tmp['fp'], data_tmp['fn'], data_tmp['recall'], data_tmp['sMOTA'] = \
-                e.MOTA, e.MOTP, e.MODA, e.MODP, e.precision, e.F1, e.fp, e.fn, e.recall, e.sMOTA
-            stat_meter.update(data_tmp)
-            mota_tmp = e.MOTA
-            if mota_tmp > best_mota: 
-                best_threshold = threshold_tmp
-                best_mota = mota_tmp
-            e.saveToStats(dump, threshold_tmp, recall_tmp) 
-        e.reset()
-        print("best threshold= ", best_threshold,file=dump)
-        # print(len(threshold_list), len(recall_list))
-        e.compute3rdPartyMetrics(best_threshold)
-        e.saveToStats(dump) 
+            print("best threshold= ", best_threshold,file=dump)
+            # print(len(threshold_list), len(recall_list))
+            e.compute3rdPartyMetrics(best_threshold)
+            e.saveToStats(dump) 
     
-        stat_meter.output(len(threshold_list))
-        summary = stat_meter.print_summary()
+            stat_meter.output(len(threshold_list))
+            summary = stat_meter.print_summary()
         
-        stat_meter.plot(save_dir=out_path)
-        mail.msg(summary)       # mail or print the summary.
+            stat_meter.plot(save_dir=out_path)
+            mail.msg(summary)       # mail or print the summary.
         dump.close()
         
    
@@ -1264,6 +1262,7 @@ def main(dataset):
     cls_list = cfg['class_name']
     label_format_list = [cfg['gt_format'],cfg['trk_format']] #[GT format,Track format]    
     num_hypo = cfg['num_hypo']
+    max_truncation = cfg['max_truncation']
     max_occlusion = cfg['max_occlusion']
     eval_seq = cfg['eval_seq']
         
@@ -1277,7 +1276,7 @@ def main(dataset):
         msg=f"gt_path: {gt_path}\nt_path:{t_path}\nthreshold:{thres}, num_hypo:{num_hypo}\neval_3diou:{eval_3diou}, eval_2diou:{eval_2diou}, max_occlusion:{max_occlusion}"
         f.write(msg)
         f.close()        
-        success = evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path,new_out_path, max_occlusion = max_occlusion, cls_list = cls_list, label_format_list = label_format_list, eval_seq = eval_seq)
+        success = evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path,new_out_path, max_occlusion = max_occlusion, max_truncation = max_truncation, cls_list = cls_list, label_format_list = label_format_list, eval_seq = eval_seq)
 #########################################################################
 # entry point of evaluation script
 # input:

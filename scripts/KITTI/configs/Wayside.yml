@@ -2,12 +2,12 @@
 description                  : Wayside
 # ------------------- Path Options -------------------------
 gt_path                      : "/home/philly12399/evaltest/gt/label/" 
-trk_path                     : "/home/philly12399/evaltest/track/label/"
+trk_path                     : "/home/philly12399/evaltest/track_new/label/"
 out_path                     : "/home/philly12399/evaltest/wayside_output/"
 exp_name                     : test
 # ------------------- Eval Options -------------------------
 iou                          : 3D
-threshold                    : [0.5]
+threshold                    : [0.25,0.5]
 class_name                   : ['car','cyclist']
 gt_format                    : Wayside
 trk_format                   : Wayside
