@@ -1269,14 +1269,11 @@ def main(dataset):
     timestr=datetime.now().strftime("%Y-%m-%dT%H:%M:%S") 
     
     for thres in thres_list:
-        new_out_path=os.path.join(out_path,exp_name+f"@{thres}")
-        os.system("mkdir -p {}".format(new_out_path))
-        config=os.path.join(new_out_path,"config.txt")
-        f = open(config, "w")    
-        msg=f"gt_path: {gt_path}\nt_path:{t_path}\nthreshold:{thres}, num_hypo:{num_hypo}\neval_3diou:{eval_3diou}, eval_2diou:{eval_2diou}, max_occlusion:{max_occlusion}"
-        f.write(msg)
-        f.close()        
+        new_out_path=os.path.join(out_path,exp_name,f"@{thres}")
+        os.system("mkdir -p {}".format(new_out_path))    
         success = evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path,new_out_path, max_occlusion = max_occlusion, max_truncation = max_truncation, cls_list = cls_list, label_format_list = label_format_list, eval_seq = eval_seq)
+    config=os.path.join(out_path,exp_name,"config.yml")
+    os.system(f"cp {config_path} {config}") 
 #########################################################################
 # entry point of evaluation script
 # input:
