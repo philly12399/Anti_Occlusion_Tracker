@@ -60,7 +60,6 @@ def get_subfolder_seq(dataset, split):
         seq_eval = ['0004']
         data_root = os.path.join(file_path, '../data/Wayside') 
     else: assert False, 'error, %s dataset is not supported' % dataset
-        
     return subfolder, det_id2str, hw, seq_eval, data_root
 
 def get_threshold(dataset, det_name):

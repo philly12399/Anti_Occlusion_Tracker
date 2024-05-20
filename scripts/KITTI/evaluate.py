@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # encoding: utf-8
-
 from __future__ import print_function
 import matplotlib; matplotlib.use('Agg')
 import sys, os, copy, math, numpy as np, matplotlib.pyplot as plt
@@ -15,6 +14,8 @@ import mailpy
 import click
 from AB3DMOT_libs.dist_metrics import iou
 from datetime import datetime
+from AB3DMOT_libs.utils import Config
+
 num_sample_pts = 41.0
 
 class tData:
@@ -23,7 +24,7 @@ class tData:
     """
     def __init__(self,frame=-1,obj_type="unset",truncation=-1,occlusion=-1,\
                  obs_angle=-10,x1=-1,y1=-1,x2=-1,y2=-1,w=-1,h=-1,l=-1,\
-                 x=-1000,y=-1000,z=-1000,ry=-10,score=-1000,track_id=-1, label_format="kitti"):
+                 x=-1000,y=-1000,z=-1000,ry=-10,score=-1000,track_id=-1, label_format="KITTI"):
         """
             Constructor, initializes the object given the parameters.
         """
@@ -111,7 +112,7 @@ class trackingEvaluation(object):
     """
 
     def __init__(self, t_sha, gt_path="./scripts/KITTI", t_path ="./results/KITTI" , max_truncation = 0, min_height = 0, max_occlusion = 4, \
-        mail=None, cls="car", eval_3diou=True, eval_2diou=False, num_hypo=1, thres=None, label_format_list = None):
+        mail=None, cls="car", eval_3diou=True, eval_2diou=False, num_hypo=1, thres=None, label_format_list = None, eval_seq = None):
         # get number of sequences and
         # get number of frames per sequence from test mapping
         # (created while extracting the benchmark)
@@ -121,11 +122,13 @@ class trackingEvaluation(object):
         with open(filename_test_mapping, "r") as fh:
             for i,l in enumerate(fh):
                 fields = l.split(" ")
+                if(eval_seq!=None and int(fields[0]) not in eval_seq):
+                    continue
                 self.sequence_name.append("%04d" % int(fields[0]))
                 self.n_frames.append(int(fields[3]) - int(fields[2])+1)
         fh.close()
         self.n_sequences = i+1
-
+        print("Evaluate on sequence ", self.sequence_name)
         # mail object
         self.mail = mail
 
@@ -133,9 +136,11 @@ class trackingEvaluation(object):
         self.cls = cls
 
         # data and parameter
-        self.gt_path           = os.path.join(gt_path, "label")
         self.t_sha             = t_sha
-        self.t_path            = os.path.join(t_path, "label")
+        self.gt_path           = gt_path
+        self.t_path            = t_path
+        # self.gt_path           = os.path.join(gt_path, "label")
+        # self.t_path           = os.path.join(t_path, "label")
         self.label_format_list = label_format_list
         # statistics and numbers for evaluation
         self.n_gt              = 0 # number of ground truth detections minus ignored false negatives and true positives
@@ -223,6 +228,7 @@ class trackingEvaluation(object):
         try:
             if not self._loadData(self.t_path, cls=self.cls, loading_groundtruth=False, label_format = self.label_format_list[1]):
                 return False
+            
         except IOError:
             return False
         return True
@@ -238,13 +244,13 @@ class trackingEvaluation(object):
         data    = []
         eval_2d = True
         eval_3d = True
-
         seq_data           = []
         n_trajectories     = 0
         n_trajectories_seq = []
+        
         for seq, s_name in enumerate(self.sequence_name):
             i              = 0
-            filename       = os.path.join(root_dir, "%s.txt" % s_name)
+            filename       = os.path.join(root_dir, "%s.txt" % s_name)   
             f              = open(filename, "r")
 
             f_data         = [[] for x in range(self.n_frames[seq])] # current set has only 1059 entries, sufficient length is checked anyway
@@ -1127,7 +1133,7 @@ class stat:
         self.plot_over_recall(self.fn_list, 'False Negative - Recall Curve', 'False Negative', os.path.join(save_dir, 'FN_recall_curve_%s_%s.pdf' % (self.cls, self.suffix)))
         self.plot_over_recall(self.precision_list, 'Precision - Recall Curve', 'Precision', os.path.join(save_dir, 'precision_recall_curve_%s_%s.pdf' % (self.cls, self.suffix)))
 
-def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path,out_path, max_occlusion = 4, cls_list=["car", "cyclist"], label_format_list = ["kitti","kitti"]):
+def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path,out_path, max_occlusion = 4, cls_list=["car", "cyclist"], label_format_list = ["KITTI","KITTI"], eval_seq = None):
     """
         Entry point for evaluation, will load the data and start evaluation for
         CAR and PEDESTRIAN if available.
@@ -1141,7 +1147,7 @@ def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path
         assert False, 'error'
     classes = []
     for c in cls_list: # 
-        e = trackingEvaluation(t_sha=result_sha,gt_path=gt_path,t_path=t_path,mail=mail,cls=c,eval_3diou=eval_3diou,eval_2diou=eval_2diou,num_hypo=num_hypo,thres=thres, max_occlusion = max_occlusion, label_format_list = label_format_list)
+        e = trackingEvaluation(t_sha=result_sha,gt_path=gt_path,t_path=t_path,mail=mail,cls=c,eval_3diou=eval_3diou,eval_2diou=eval_2diou,num_hypo=num_hypo,thres=thres, max_occlusion = max_occlusion, label_format_list = label_format_list, eval_seq = eval_seq)
         # load tracker data and check provided classes
         try:
             if not e.loadTracker():
@@ -1226,50 +1232,41 @@ def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path
 @click.command()
 # Add your options here
 @click.option(
-    "--gt_path",
-    "-g",
+    "--dataset",
+    "-d",
     type=str,
-    default="/home/philly12399/evaltest/gt/",
+    default="KITTI",
     # required=True,
-    help="Path of groundtruth.",
-)
-@click.option(
-    "--t_path",
-    "-t",
-    type=str,
-    default="/home/philly12399/evaltest/track/",
-    # required=True,
-    help="Path of track.",
-)
-@click.option(
-    "--out_path",
-    "-o",
-    type=str,
-    default="/home/philly12399/evaltest/output/",
-    # required=True,
-    help="Path of output.",
-)
-@click.option(
-    "--exp_name",
-    "-e",
-    type=str,
-    default="test",
-    # required=True,
-    help="exp name.",
+    help="KITTI or Wayside dataset",
 )
 
-def main(gt_path, t_path, out_path, exp_name):
+
+def main(dataset):
     # evaluate results
     # Settings
     result_sha = ""
     mail = mailpy.Mail("")
-    eval_3diou, eval_2diou = True, False   
-    thres_list = [0.25, 0.5]
-    cls_list = ["car"]
-    label_format_list = ["Wayside","Wayside"] #[GT format,Track format]
-    num_hypo = 1
-    max_occlusion = 4
+    config_path = './configs/%s.yml' % dataset
+    cfg, settings_show = Config(config_path)
     
+    
+
+    #load cfg
+    gt_path = cfg['gt_path']
+    t_path = cfg['trk_path']
+    out_path = cfg['out_path']
+    exp_name = cfg['exp_name']
+    if(cfg['iou']=='3D'):   eval_3diou, eval_2diou = True, False   
+    elif(cfg['iou']=='2D'): eval_3diou, eval_2diou = False, True   
+    else:   assert False, 'IoU error'
+    
+    thres_list = cfg['threshold']
+    cls_list = cfg['class_name']
+    label_format_list = [cfg['gt_format'],cfg['trk_format']] #[GT format,Track format]    
+    num_hypo = cfg['num_hypo']
+    max_occlusion = cfg['max_occlusion']
+    eval_seq = cfg['eval_seq']
+        
     timestr=datetime.now().strftime("%Y-%m-%dT%H:%M:%S") 
     
     for thres in thres_list:
@@ -1280,7 +1277,7 @@ def main(gt_path, t_path, out_path, exp_name):
         msg=f"gt_path: {gt_path}\nt_path:{t_path}\nthreshold:{thres}, num_hypo:{num_hypo}\neval_3diou:{eval_3diou}, eval_2diou:{eval_2diou}, max_occlusion:{max_occlusion}"
         f.write(msg)
         f.close()        
-        success = evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path,new_out_path, max_occlusion = max_occlusion, cls_list = cls_list, label_format_list = label_format_list)
+        success = evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path,new_out_path, max_occlusion = max_occlusion, cls_list = cls_list, label_format_list = label_format_list, eval_seq = eval_seq)
 #########################################################################
 # entry point of evaluation script
 # input:

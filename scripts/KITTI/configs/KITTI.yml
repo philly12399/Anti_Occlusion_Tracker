@@ -1,0 +1,17 @@
+# ------------------- Dataset Name -------------------------
+description                  : KITTI
+# ------------------- Path Options -------------------------
+gt_path                      : "/home/philly12399/thesis/AB3DMOT/scripts/KITTI/label/" 
+trk_path                     : "/home/philly12399/philly_data/KITTI_tracking/training/label_02/"
+out_path                     : "/home/philly12399/evaltest/kitti_output/"
+exp_name                     : test
+# ------------------- Eval Options -------------------------
+iou                          : 3D
+threshold                    : [0.5]
+class_name                   : ['car']
+gt_format                    : KITTI
+trk_format                   : KITTI
+num_hypo                     : 1
+max_occlusion                : 4
+eval_seq                     : [0]
+

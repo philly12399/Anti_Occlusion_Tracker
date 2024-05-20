@@ -227,10 +227,6 @@ class AB3DMOT(object):
                 self.track_buf[index].kf.x[:3] = copy.copy(compensated).reshape((-1, 1))
 
         return trks
-   
-        
-    
-
         
     def ego_motion_compensation_test(self, frame, dets):
         # inverse ego motion compensation, move trks from the last frame of coordinate to the current frame for matching
@@ -515,9 +511,7 @@ class AB3DMOT(object):
         # tracks propagation based on velocity
         trks = self.prediction(frame, history = self.history)
         old_trks = trks
-        # pdb.set_trace()
-        # if (frame ==1) and (self.ego_com) and (self.oxts is not None):    
-        #     self.ego_motion_compensation_test(frame,dets)
+
         ## Comment for wayside (don't need)
         # # ego motion compensation, adapt to the current frame of camera coordinate
         # if (frame > 0) and (self.ego_com) and (self.oxts is not None):
