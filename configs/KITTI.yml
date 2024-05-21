@@ -1,3 +1,4 @@
+##TRACKING CONFIG
 # ------------------- General Options -------------------------
 description                  : AB3DMOT
 seed                         : 0
@@ -27,3 +28,5 @@ history                      : 1
 NDT_flag                     : False
 NDT_cfg                      : {'voxel_size': 0.5, 'overlap': True, 'min_pts_voxel': 5, 'noise': 0.05}
 NDT_out_path                 : ""
+#---------------
+seq_eval                     : [0,1,2,3] #sequence to track, [] means by default

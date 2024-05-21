@@ -33,6 +33,7 @@ def load_detection(file, format="",cat = "",cls_map = {}):
 	else:
 		return dets, True
 
+
 def get_frame_det(dets_all, frame, format=""):
 	if(format=="Wayside"):
 		# get irrelevant information associated with an object, not used for associationg

@@ -1,18 +1,19 @@
+##EVALUATION CONFIG
 # ------------------- Dataset Name -------------------------
 description                  : KITTI
 # ------------------- Path Options -------------------------
 gt_path                      : "/home/philly12399/thesis/AB3DMOT/scripts/KITTI/label/" 
-trk_path                     : "/home/philly12399/philly_data/KITTI_tracking/training/label_02/"
+trk_path                     : "/home/philly12399/thesis/AB3DMOT/results/KITTI/pointrcnn_Car_val_H1/data_0/"
 out_path                     : "/home/philly12399/evaltest/kitti_output/"
 exp_name                     : test
 # ------------------- Eval Options -------------------------
 iou                          : 3D
-threshold                    : [0.25,0.5]
+threshold                    : [0.5]
 class_name                   : ['car']
 gt_format                    : KITTI
 trk_format                   : KITTI
 num_hypo                     : 1
 max_occlusion                : 4
 max_truncation               : 2 #0,1,2
-eval_seq                     : [0]
+eval_seq                     : [0,1]
 

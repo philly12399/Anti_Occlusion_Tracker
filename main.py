@@ -23,6 +23,7 @@ def parse_args():
 
 def main_per_cat(cfg, cat, log, ID_start, frame_num):
     # get data-cat-split specific path
+    # print(cfg)
     np.random.seed(0)
     all_sha = '%s_%s_%s' % (cfg.det_name, 'all', cfg.split)
     result_sha = '%s_%s_%s' % (cfg.det_name, cat, cfg.split)
@@ -41,6 +42,9 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num):
         class_map = cfg.class_map
     ##SEQ SETTING
     subfolder, det_id2str, hw, seq_eval, data_root = get_subfolder_seq(cfg.dataset, cfg.split)
+    if("seq_eval" in cfg and cfg.seq_eval != []):
+            seq_eval = [str(s).zfill(4) for s in cfg.seq_eval]
+
     trk_root = os.path.join(data_root, 'tracking')
     save_dir = os.path.join(cfg.save_root, result_sha + '_H%d' % cfg.num_hypo); mkdir_if_missing(save_dir)
     # create eval dir for each hypothesis
@@ -55,6 +59,7 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num):
     for seq_name in seq_eval:
         seq_file = os.path.join(det_root, seq_name+'.txt')
         seq_dets, flag = load_detection(seq_file, format=cfg.dataset, cat=cat, cls_map = class_map) 	# load detection
+        
         if not flag: continue									# no detection
 
         # create folders for saving
@@ -75,13 +80,12 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num):
             # but should output an N x 0 affinity for consistency
 
             # logging
-            print_str = 'processing %s %s: %d/%d, %d/%d   \n' % (result_sha, seq_name, seq_count, \
+            # print_str = 'processing %s %s: %d/%d, %d/%d   \n' % (result_sha, seq_name, seq_count, \
+                # len(seq_eval), frame, max_frame)
+            print_str = 'processing %s %s: %d/%d, %d/%d   \r' % (result_sha, seq_name, seq_count, \
                 len(seq_eval), frame, max_frame)
-            # print_str = 'processing %s %s: %d/%d, %d/%d   \r' % (result_sha, seq_name, seq_count, \
-            #     len(seq_eval), frame, max_frame)
-            # sys.stdout.write(print_str)
-            # sys.stdout.flush()
-
+            sys.stdout.write(print_str)
+            sys.stdout.flush()
             # tracking by detection
             TT=[time.time()]
             TT.append(time.time())
