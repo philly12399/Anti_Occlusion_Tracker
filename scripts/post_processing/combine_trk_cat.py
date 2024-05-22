@@ -18,21 +18,22 @@ def parse_args():
     args = parser.parse_args()
     return args
 
-def combine_trk_cat(split, dataset, method, suffix, num_hypo):
+def combine_trk_cat(split, dataset, method, suffix, num_hypo, config_path, root_dir, seq_eval, cat_list):
 
 	# load dataset-specific config
 	file_path = os.path.dirname(os.path.realpath(__file__))
-	root_dir = os.path.join(file_path, '../../results', dataset)
+	# root_dir = save_root
 	_, det_id2str, _, seq_list, _ = get_subfolder_seq(dataset, split)
-
+	if(seq_eval != []):
+		seq_list = [str(s).zfill(4) for s in seq_eval]
+  
 	# load config files
-	config_path = os.path.join(file_path, '../../configs/%s.yml' % dataset)
-	cfg, _ = Config(config_path)
-	log = os.path.join(root_dir, '%s_%s_%s' % (method, split, suffix), 'combine_log.txt')
-	mkdir_if_missing(log); log = open(log, 'w+')
-
+	# cfg, _ = Config(config_path)
+	# log = os.path.join(root_dir, '%s_%s_%s' % (method, split, suffix), 'combine_log.txt')
+	# mkdir_if_missing(log); log = open(log, 'w+')
+	os.system(f"cp {config_path} {root_dir}/track_config.yml")
 	# source directory
-	subset = ['%s_%s_%s_%s' % (method, cat, split, suffix) for cat in cfg.cat_list]
+	subset = ['%s_%s_%s_%s' % (method, cat, split, suffix) for cat in cat_list]
 
 	# loop through all hypotheses
 	for hypo_index in range(num_hypo):
@@ -65,7 +66,10 @@ def combine_trk_cat(split, dataset, method, suffix, num_hypo):
 
 				save_path_tmp = os.path.join(save_dir, frame_tmp+'.txt')
 				combine_files(file_list_tmp, save_path_tmp, sort=False)
-
+		# copy label for shortcut
+		all_label_path = os.path.join(save_root,'../data_0/')
+		copy_label_path = os.path.join(root_dir,'label')
+		os.system(f"cp -r {all_label_path} {copy_label_path}")
 if __name__ == '__main__':
 	args = parse_args()
 	combine_trk_cat(args.split, args.dataset, args.det_name, args.suffix, args.num_hypo)

@@ -11,6 +11,7 @@ from xinshuo_io import mkdir_if_missing, save_txt_file
 from xinshuo_miscellaneous import get_timestring, print_log
 from Philly_libs.philly_io import *
 from Philly_libs.philly_utils import *
+
 def parse_args():
     parser = argparse.ArgumentParser(description='AB3DMOT')
     # parser.add_argument('--dataset', type=str, default='nuScenes', help='KITTI, nuScenes, Wayside')
@@ -43,8 +44,8 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num):
         class_map = cfg.class_map
     ##SEQ SETTING
     subfolder, det_id2str, hw, seq_eval, data_root = get_subfolder_seq(cfg.dataset, cfg.split)
-    if("seq_eval" in cfg and cfg.seq_eval != []):
-            seq_eval = [str(s).zfill(4) for s in cfg.seq_eval]
+    if(cfg.seq_eval != []):
+        seq_eval = [str(s).zfill(4) for s in cfg.seq_eval]
 
     trk_root = os.path.join(data_root, 'tracking')
     save_dir = os.path.join(cfg.save_root, result_sha + '_H%d' % cfg.num_hypo); mkdir_if_missing(save_dir)
@@ -58,6 +59,7 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num):
     total_time, total_frames = 0.0, 0
     
     for seq_name in seq_eval:
+        
         seq_file = os.path.join(det_root, seq_name+'.txt')
         seq_dets, flag = load_detection(seq_file, format=cfg.dataset, cat=cat, cls_map = class_map) 	# load detection
         
@@ -66,8 +68,10 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num):
         # create folders for saving
         eval_file_dict, save_trk_dir, affinity_dir, affinity_vis = \
             get_saving_dir(eval_dir_dict, seq_name, save_dir, cfg.num_hypo)
+            
         # initialize tracker
         tracker, frame_list = initialize(cfg, trk_root, save_dir, subfolder, seq_name, cat, ID_start, hw, log)
+        
         # loop over frame
         min_frame, max_frame = int(frame_list[0]), int(frame_list[-1])
 
@@ -153,7 +157,11 @@ def main(args):
     # overwrite split and detection method
     if args.split is not '': cfg.split = args.split
     if args.det_name is not '': cfg.det_name = args.det_name
-
+    
+    #seq
+    if ("seq_eval" not in cfg):
+        cfg.seq_eval=[]
+        
     # print configs
     time_str = get_timestring()
     log = os.path.join(cfg.save_root, 'log/log_%s_%s_%s.txt' % (time_str, cfg.dataset, cfg.split))
@@ -167,12 +175,16 @@ def main(args):
     ID_start = 1
 
     # run tracking for each category
+    #cat to capitalize
+    cfg.cat_list = [cat.capitalize() for cat in cfg.cat_list]
+        
     for cat in cfg.cat_list:
         ID_start = main_per_cat(cfg, cat, log, ID_start, args.frame)
 
     # combine results for every category
     print_log('\ncombining results......', log=log)
-    combine_trk_cat(cfg.split, cfg.dataset, cfg.det_name, 'H%d' % cfg.num_hypo, cfg.num_hypo)
+    
+    combine_trk_cat(cfg.split, cfg.dataset, cfg.det_name, 'H%d' % cfg.num_hypo, cfg.num_hypo, config_path, cfg.save_root, cfg.seq_eval, cfg.cat_list)
     print_log('\nDone!', log=log)
     log.close()
     

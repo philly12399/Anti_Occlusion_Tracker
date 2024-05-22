@@ -1260,7 +1260,7 @@ def main(args):
         new_out_path=os.path.join(out_path,exp_name,f"@{thres}")
         os.system("mkdir -p {}".format(new_out_path))    
         success = evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path,new_out_path, max_occlusion = max_occlusion, max_truncation = max_truncation, cls_list = cls_list, label_format_list = label_format_list, eval_seq = eval_seq)
-    config=os.path.join(out_path,exp_name,"config.yml")
+    config=os.path.join(out_path,exp_name,"eval_config.yml")
     os.system(f"cp {config_path} {config}") 
     
 def parse_args():

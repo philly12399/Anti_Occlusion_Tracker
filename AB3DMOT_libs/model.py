@@ -72,7 +72,7 @@ class AB3DMOT(object):
             self.NDT_cfg = cfg.NDT_cfg
             
         self.NDT_out_path = None
-        if('NDT_out_path' in cfg):
+        if(self.NDT_flag and 'NDT_out_path' in cfg):
             self.NDT_out_path = cfg.NDT_out_path
             det_path=os.path.join(self.NDT_out_path, f"det_{self.cat}")
             trk_path=os.path.join(self.NDT_out_path, f"trk_{self.cat}")            
