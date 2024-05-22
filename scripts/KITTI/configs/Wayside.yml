@@ -14,5 +14,6 @@ gt_format                    : Wayside
 trk_format                   : Wayside
 num_hypo                     : 1
 max_occlusion                : 4
+max_truncation               : 2 #0,1,2
 eval_seq                     : [4]
 

@@ -13,7 +13,8 @@ from Philly_libs.philly_io import *
 from Philly_libs.philly_utils import *
 def parse_args():
     parser = argparse.ArgumentParser(description='AB3DMOT')
-    parser.add_argument('--dataset', type=str, default='nuScenes', help='KITTI, nuScenes, Wayside')
+    # parser.add_argument('--dataset', type=str, default='nuScenes', help='KITTI, nuScenes, Wayside')
+    parser.add_argument('-c','--config', type=str, required=True, help='Config file path')
     parser.add_argument('--split', type=str, default='', help='train, val, test')
     parser.add_argument('--det_name', type=str, default='', help='pointrcnn')
     parser.add_argument('--frame', type=int, default=-1, help='frame num')
@@ -146,7 +147,7 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num):
 def main(args):
 
     # load config files
-    config_path = './configs/%s.yml' % args.dataset
+    config_path = args.config
     cfg, settings_show = Config(config_path)
 
     # overwrite split and detection method

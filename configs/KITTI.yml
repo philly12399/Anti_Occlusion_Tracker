@@ -7,7 +7,7 @@ seed                         : 0
 save_root                    : ./results/KITTI
 dataset                      : KITTI      # KITTI
 split                        : val        # val, test
-det_name                     : pointrcnn  # name of the detector [pointrcnn, pvrcnn]
+det_name                     : pointrcnn  # name of the detector [pointrcnn, pvrcnn]/ gt
 cat_list                     : ['Car'] #['Car', 'Pedestrian', 'Cyclist']
 
 score_threshold              : -10000     # filter out tracklet with low confidence if necessary, default no filtering here but do it in trk_conf_threshold.py
@@ -29,4 +29,4 @@ NDT_flag                     : False
 NDT_cfg                      : {'voxel_size': 0.5, 'overlap': True, 'min_pts_voxel': 5, 'noise': 0.05}
 NDT_out_path                 : ""
 #---------------
-seq_eval                     : [0,1,2,3] #sequence to track, [] means by default
+seq_eval                     : [0,1] #sequence to track, [] means by default
