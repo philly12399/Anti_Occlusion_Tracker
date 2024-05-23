@@ -4,7 +4,7 @@ description                  : AB3DMOT
 seed                         : 0
 
 # --------------- main.py
-save_root                    : ./tracker_exp/KITTI/exp2
+save_root                    : ./tracker_exp_local/KITTI/exp1
 dataset                      : KITTI      # KITTI
 split                        : val        # val, test
 det_name                     : pointrcnn  # name of the detector [pointrcnn, pvrcnn]/ gt
@@ -22,11 +22,15 @@ label_format                 : Kitti      # Kitti, Waymo, nuscenes
 label_coord                   : camera       # lidar or camera
 pcd_db_root                  : ""
 class_map                    : {} #lower case
-buffer_size                  : 30
+buffer_size                  : 10
 history                      : 1
 # ------------------NDT
 NDT_flag                     : False
 NDT_cfg                      : {'voxel_size': 0.5, 'overlap': True, 'min_pts_voxel': 5, 'noise': 0.05}
 NDT_out_path                 : ""
 #---------------
-seq_eval                     : [0] #sequence to track, [] means by default
+seq_eval                     : [0,1,2,4,5,10,11,13,15,16] #sequence to track, [] means by default
+#---------------AB3DMOT base
+use_default                  : False
+base_param                   : {'algm': 'hungar', 'metric': 'giou_3d', 'thres': 0.25, 'min_hits': 5, 'max_age': 10}
+

@@ -118,13 +118,13 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num):
             # actual two sets of output tracklets
             save_affi_file = os.path.join(affinity_dir, '%06d.npy' % frame)
             save_affi_vis  = os.path.join(affinity_vis, '%06d.txt' % frame)
-            if (affi is not None) and (affi.shape[0] + affi.shape[1] > 0):
-                # save affinity as long as there are tracklets in at least one frame
-                np.save(save_affi_file, affi)
+            # if (affi is not None) and (affi.shape[0] + affi.shape[1] > 0):
+            #     # save affinity as long as there are tracklets in at least one frame
+            #     np.save(save_affi_file, affi)
 
-                # cannot save for visualization unless both two frames have tracklets
-                if affi.shape[0] > 0 and affi.shape[1] > 0:
-                    save_affinity(affi, save_affi_vis)
+            #     # cannot save for visualization unless both two frames have tracklets
+            #     if affi.shape[0] > 0 and affi.shape[1] > 0:
+            #         save_affinity(affi, save_affi_vis)
 
             # saving trajectories, loop over each hypothesis
             for hypo in range(cfg.num_hypo):
