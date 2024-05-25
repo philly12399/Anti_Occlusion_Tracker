@@ -201,7 +201,8 @@ class Calibration(object):
         pts_2d = np.dot(pts_3d_rect, np.transpose(self.P)) # nx3
         pts_2d[:,0] /= pts_2d[:,2]
         pts_2d[:,1] /= pts_2d[:,2]
-        return pts_2d[:,0:2]
+        # depth = pts_2d[:,2] -  np.transpose(self.P)[3,2]
+        return pts_2d[:,0:2] #, depth
     
     def project_velo_to_image(self, pts_3d_velo):
         ''' Input: nx3 points in velodyne coord.

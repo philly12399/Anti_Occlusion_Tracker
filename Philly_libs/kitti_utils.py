@@ -50,3 +50,21 @@ def inverse_transform(T):
     T_inv[:3, :3] = R_inv
     T_inv[:3, 3] = t_inv
     return T_inv
+import pdb
+def KITTI_FOV_filter(calib, pts_rect, img_shape=(375, 1242)):
+    # pts_rect = calib.lidar_to_rect(points[:, 0:3])
+    # print(pts_rect.shape)
+    # pts_img, pts_rect_depth = calib.project_rect_to_image(pts_rect)
+    
+    pts_img = calib.project_rect_to_image(pts_rect)
+    
+    # b_reshaped = pts_rect_depth[:, np.newaxis]
+    # p1=np.hstack((pts_img,b_reshaped))
+    # print(p1)
+    val_flag_1 = np.logical_and(pts_img[:, 0] >= 0, pts_img[:, 0] < img_shape[1])
+    val_flag_2 = np.logical_and(pts_img[:, 1] >= 0, pts_img[:, 1] < img_shape[0])
+    val_flag_merge = np.logical_and(val_flag_1, val_flag_2)
+    return val_flag_merge
+
+    # pts_valid_flag = np.logical_and(val_flag_merge, pts_rect_depth >= 0)
+    # return pts_valid_flag

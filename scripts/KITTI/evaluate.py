@@ -15,7 +15,9 @@ import argparse
 from AB3DMOT_libs.dist_metrics import iou
 from datetime import datetime
 from AB3DMOT_libs.utils import Config
-
+from AB3DMOT_libs.kitti_calib import Calibration
+from Philly_libs.kitti_utils import KITTI_FOV_filter
+import pdb
 num_sample_pts = 41.0
 
 class tData:
@@ -111,7 +113,7 @@ class trackingEvaluation(object):
     """
 
     def __init__(self, t_sha, gt_path="./scripts/KITTI", t_path ="./results/KITTI" , max_truncation = 0, min_height = 0, max_occlusion = 4, \
-        mail=None, cls="car", eval_3diou=True, eval_2diou=False, num_hypo=1, thres=None, label_format_list = None, eval_seq = None):
+        mail=None, cls="car", eval_3diou=True, eval_2diou=False, num_hypo=1, thres=None, label_format_list = None, eval_seq = None, fov_filter=False, calibs={}):
         # get number of sequences and
         # get number of frames per sequence from test mapping
         # (created while extracting the benchmark)
@@ -196,6 +198,9 @@ class trackingEvaluation(object):
             else: assert False
         else:
             self.min_overlap = thres
+            
+        self.fov_filter = fov_filter
+        self.calibs = calibs
         # print('min overlap creteria is %f' % self.min_overlap)
 
         self.max_truncation    = max_truncation # maximum truncation of an object for evaluation
@@ -246,9 +251,8 @@ class trackingEvaluation(object):
         seq_data           = []
         n_trajectories     = 0
         n_trajectories_seq = []
-        
+
         for seq, s_name in enumerate(self.sequence_name):
-            # print(s_name)
             i              = 0
             filename       = os.path.join(root_dir, "%s.txt" % s_name)   
             f              = open(filename, "r")
@@ -265,7 +269,7 @@ class trackingEvaluation(object):
                 classes = ["pedestrian","person_sitting"]
             else:
                 classes = [cls.lower()]
-            classes += ["dontcare"]
+            classes += ["dontcare"]            
             
             for line in f:
                 # KITTI tracking benchmark data format:
@@ -304,8 +308,7 @@ class trackingEvaluation(object):
 
                 # do not consider objects marked as invalid
                 if t_data.track_id is -1 and t_data.obj_type != "dontcare":
-                    continue
-
+                    continue                                 
                 idx = t_data.frame
                 # check if length for frame data is sufficient
                 if idx >= len(f_data):
@@ -335,7 +338,27 @@ class trackingEvaluation(object):
                     eval_2d = False
                 if not loading_groundtruth and eval_3d is True and(t_data.x==-1000 or t_data.y==-1000 or t_data.z==-1000):
                     eval_3d = False
-
+            # FOV filter
+            filt_cnt=0
+            if(self.fov_filter and not loading_groundtruth):
+                assert (s_name in self.calibs), f"Error can't load {s_name} calib."
+                calib = self.calibs[s_name]
+                for ff,f1 in enumerate(f_data):
+                    if(len(f1)==0):
+                        continue
+                    pts = []
+                    for d1 in f1:
+                        if(d1.obj_type == 'car' or d1.obj_type == 'van'):
+                            pts.append([d1.x,d1.y,d1.z])
+                    flag = KITTI_FOV_filter(calib,np.array(pts))
+                    filt_cnt += sum(not x for x in flag)
+                    # for i,x in enumerate(flag):
+                    #     if(not x): print(f"Filt {ff}-{i}")
+                    f_data[ff] = [item for item, mask in zip(f1, flag) if mask]
+                    # pdb.set_trace()
+                # print(pts)
+                # print(f"Filt {filt_cnt} detection out of FOV. GT {loading_groundtruth}")
+                    
             # only add existing frames
             n_trajectories_seq.append(n_in_seq)
             seq_data.append(f_data)
@@ -1131,7 +1154,8 @@ class stat:
         self.plot_over_recall(self.fn_list, 'False Negative - Recall Curve', 'False Negative', os.path.join(save_dir, 'FN_recall_curve_%s_%s.pdf' % (self.cls, self.suffix)))
         self.plot_over_recall(self.precision_list, 'Precision - Recall Curve', 'Precision', os.path.join(save_dir, 'precision_recall_curve_%s_%s.pdf' % (self.cls, self.suffix)))
 
-def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path,out_path, max_occlusion = 4, max_truncation = 0, cls_list=["car", "cyclist"], label_format_list = ["KITTI","KITTI"], eval_seq = None, average = False):
+
+def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path,out_path, max_occlusion = 4, max_truncation = 0, cls_list=["car", "cyclist"], label_format_list = ["KITTI","KITTI"], eval_seq = None, fov_filter=False, calib_path=None, average = False):
     """
         Entry point for evaluation, will load the data and start evaluation for
         CAR and PEDESTRIAN if available.
@@ -1144,20 +1168,28 @@ def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path
     else:
         assert False, 'error'
     classes = []
+    calibs = {}    
+    if(fov_filter):
+        for s in eval_seq:
+            seq=str(s).zfill(4)
+            calib_p = os.path.join(calib_path, f"{seq}.txt")
+            calibs[seq] = Calibration(calib_p)
+            
     for c in cls_list: # 
-        e = trackingEvaluation(t_sha=result_sha,gt_path=gt_path,t_path=t_path,mail=mail,cls=c,eval_3diou=eval_3diou,eval_2diou=eval_2diou,num_hypo=num_hypo,thres=thres, max_occlusion = max_occlusion, max_truncation = max_truncation, label_format_list = label_format_list, eval_seq = eval_seq)
+        e = trackingEvaluation(t_sha=result_sha,gt_path=gt_path,t_path=t_path,mail=mail,cls=c,eval_3diou=eval_3diou,eval_2diou=eval_2diou,num_hypo=num_hypo,thres=thres, max_occlusion = max_occlusion, max_truncation = max_truncation, label_format_list = label_format_list, eval_seq = eval_seq, fov_filter=fov_filter, calibs = calibs)
         # load tracker data and check provided classes
-        try:
-            if not e.loadTracker():
-                print("load tracker fail")
-                continue
-            mail.msg("Loading Results - Success")
-            mail.msg("Evaluate Object Class: %s" % c.upper())
-            classes.append(c)
-        except:
-            mail.msg("Feel free to contact us (lenz@kit.edu), if you receive this error message:")
-            mail.msg("   Caught exception while loading result data.")
-            break
+        # try:
+        if not e.loadTracker():
+            print("load tracker fail")
+            continue
+        mail.msg("Loading Results - Success")
+        mail.msg("Evaluate Object Class: %s" % c.upper())
+        classes.append(c)
+        # except Exception as error:
+        #     print(error)
+        #     mail.msg("Feel free to contact us (lenz@kit.edu), if you receive this error message:")
+        #     mail.msg("   Caught exception while loading result data.")
+        #     break
         
         # for tt in e.tracker[0][0]:
         #     print("-----------------")
@@ -1241,7 +1273,10 @@ def main(args):
     gt_path = cfg['gt_path']
     t_path = cfg['trk_path']
     out_path = cfg['out_path']
+    calib_path = cfg['calib_path']
     exp_name = cfg['exp_name']
+    fov_filter = cfg['fov_filter']
+    
     if(cfg['iou']=='3D'):   eval_3diou, eval_2diou = True, False   
     elif(cfg['iou']=='2D'): eval_3diou, eval_2diou = False, True   
     else:   assert False, 'IoU error'
@@ -1259,7 +1294,7 @@ def main(args):
     for thres in thres_list:
         new_out_path=os.path.join(out_path,exp_name,f"@{thres}")
         os.system("mkdir -p {}".format(new_out_path))    
-        success = evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path,new_out_path, max_occlusion = max_occlusion, max_truncation = max_truncation, cls_list = cls_list, label_format_list = label_format_list, eval_seq = eval_seq)
+        success = evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path,new_out_path, max_occlusion = max_occlusion, max_truncation = max_truncation, cls_list = cls_list, label_format_list = label_format_list, eval_seq = eval_seq, fov_filter = fov_filter, calib_path = calib_path)
     config=os.path.join(out_path,exp_name,"eval_config.yml")
     os.system(f"cp {config_path} {config}") 
     
