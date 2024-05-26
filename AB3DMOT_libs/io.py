@@ -11,8 +11,11 @@ def load_detection(file, format="",cat = "",cls_map = {}):
 	cat_low = cat.lower()    
 	with warnings.catch_warnings():
 		warnings.simplefilter("ignore")
-		if(format=="Wayside"):
-			str2id = {'car':1,'cyclist':2}			
+		if(format.lower()=="wayside"): str2id = {'car':1,'cyclist':2,'filtered':-1}
+		elif(format.lower()=="kitti"): str2id = {'car':2,'cyclist':3,'filtered':-1}		
+  
+		if(format.lower()=="wayside" or format.lower()=="kitti" ):
+			
 			dets1 = np.genfromtxt(file, delimiter=' ', dtype=float) #for label
 			dets2 = np.genfromtxt(file, delimiter=' ', dtype=str) #for class only
 			l = []
@@ -24,9 +27,10 @@ def load_detection(file, format="",cat = "",cls_map = {}):
 				if(dets1[i][2] == str2id[cat_low]):
 					l.append(dets1[i])
 			dets = np.array(l)
-		else:
+		elif(format.lower()=="ab3dmot"):
 			dets = np.loadtxt(file, delimiter=',') 	# load detections, N x 15
-
+		else: assert False
+  
 	if len(dets.shape) == 1: dets = np.expand_dims(dets, axis=0) 	
 	if dets.shape[1] == 0:		# if no detection in a sequence
 		return [], False
@@ -35,17 +39,20 @@ def load_detection(file, format="",cat = "",cls_map = {}):
 
 
 def get_frame_det(dets_all, frame, format=""):
-	if(format=="Wayside"):
+	if(format.lower()=="wayside" or format.lower()=="kitti"):
 		# get irrelevant information associated with an object, not used for associationg
 		matched_dets = dets_all[dets_all[:, 0] == frame , 0:]	
 		ori_array = matched_dets[:, 5].reshape((-1, 1))		# orientation
 		other_array = matched_dets[:, [2,6,7,8,9,-1]] # other information, e.g, 2D box, ...
 		additional_info = np.concatenate((ori_array, other_array), axis=1) # ori,class,2dbox,confidence
 		# get 3D box
-		dets = matched_dets[:, [12,11,10,13,14,15,16]]		
+		if(format.lower()=="wayside"):
+			dets = matched_dets[:, [12,11,10,13,14,15,16]]	
+		else:
+			dets = matched_dets[:, [10,11,12,13,14,15,16]]		
 		dets_frame = {'dets': dets, 'info': additional_info}
 		return dets_frame
-	else:
+	elif(format.lower()=="ab3dmot"):
 		# get irrelevant information associated with an object, not used for associationg
 		ori_array = dets_all[dets_all[:, 0] == frame, -1].reshape((-1, 1))		# orientation
 		other_array = dets_all[dets_all[:, 0] == frame, 1:7] 					# other information, e.g, 2D box, ...
@@ -57,6 +64,7 @@ def get_frame_det(dets_all, frame, format=""):
 
 		dets_frame = {'dets': dets, 'info': additional_info}
 		return dets_frame
+	else: assert False
 
 def load_highlight(file):
 	# load file with each line containing seq_id, frame_id, ID, error_type

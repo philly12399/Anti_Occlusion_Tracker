@@ -29,9 +29,21 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num):
     np.random.seed(0)
     all_sha = '%s_%s_%s' % (cfg.det_name, 'all', cfg.split)
     result_sha = '%s_%s_%s' % (cfg.det_name, cat, cfg.split)
-    det_root = os.path.join('./data', cfg.dataset, 'detection', all_sha)
+    
+    # for multiple rule of det name , 
+    det_root = os.path.join('./data', cfg.dataset, 'detection', cfg.det_name)
     if(os.path.exists(det_root) == False):
-        det_root = os.path.join('./data', cfg.dataset, 'detection', result_sha)
+        print(f"Didn't find det path {det_root}")
+        det_root = os.path.join('./data', cfg.dataset, 'detection', all_sha)
+        print(f"Find det path {det_root} instead.")        
+        if(os.path.exists(det_root) == False):
+            print(f"Didn't find det path {det_root}")            
+            det_root = os.path.join('./data', cfg.dataset, 'detection', result_sha)
+            print(f"Find det path {det_root} instead.")        
+            if(os.path.exists(det_root) == False): 
+                print(f"Didn't find det path {det_root}")           
+                assert False       
+            
     ##PCD INFO
     if(cfg.NDT_flag and 'pcd_db_root' in cfg):
         pcd_db_root = cfg.pcd_db_root
@@ -61,14 +73,15 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num):
     for seq_name in seq_eval:
         
         seq_file = os.path.join(det_root, seq_name+'.txt')
-        seq_dets, flag = load_detection(seq_file, format=cfg.dataset, cat=cat, cls_map = class_map) 	# load detection
-        
-        if not flag: continue									# no detection
+        seq_dets, flag = load_detection(seq_file, format=cfg.label_format, cat=cat, cls_map = class_map) 	# load detection
 
         # create folders for saving
         eval_file_dict, save_trk_dir, affinity_dir, affinity_vis = \
             get_saving_dir(eval_dir_dict, seq_name, save_dir, cfg.num_hypo)
-            
+        
+        if not flag: 
+            continue  # no detection
+        
         # initialize tracker
         tracker, frame_list = initialize(cfg, trk_root, save_dir, subfolder, seq_name, cat, ID_start, hw, log)
         
@@ -94,7 +107,7 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num):
             # tracking by detection
             TT=[time.time()]
             TT.append(time.time())
-            dets_frame = get_frame_det(seq_dets, frame, format=cfg.dataset)
+            dets_frame = get_frame_det(seq_dets, frame, format=cfg.label_format)
             TT.append(time.time())
             ## load PCDs
             if(cfg.NDT_flag):
@@ -141,11 +154,13 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num):
         for index in range(cfg.num_hypo):
             eval_file_dict[index].close()
             ID_start = max(ID_start, tracker.ID_count[index])
-
-    print_log('%s, %25s: %4.f seconds for %5d frames or %6.1f FPS, metric is %s = %.2f' % \
-        (cfg.dataset, result_sha, total_time, total_frames, total_frames / total_time, \
-        tracker.metric, tracker.thres), log=log)
-
+    try:
+        print_log('%s, %25s: %4.f seconds for %5d frames or %6.1f FPS, metric is %s = %.2f' % \
+            (cfg.dataset, result_sha, total_time, total_frames, total_frames / total_time, \
+            tracker.metric, tracker.thres), log=log)
+    except:
+         print_log('%s, %25s: No detection of %s' % \
+            (cfg.dataset, result_sha, cat), log=log)
     return ID_start
 
 def main(args):
