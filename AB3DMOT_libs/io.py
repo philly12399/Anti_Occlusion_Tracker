@@ -102,8 +102,8 @@ def get_saving_dir(eval_dir_dict, seq_name, save_dir, num_hypo):
 		eval_file_dict[index] = os.path.join(eval_dir_dict[index], seq_name + '.txt')
 		eval_file_dict[index] = open(eval_file_dict[index], 'w')
 		save_trk_dir[index] = os.path.join(save_dir, 'trk_withid_%d' % index, seq_name); mkdir_if_missing(save_trk_dir[index])
-	affinity_dir = os.path.join(save_dir, 'affi', seq_name); mkdir_if_missing(affinity_dir)
-	affinity_vis = os.path.join(save_dir, 'affi_vis', seq_name); mkdir_if_missing(affinity_vis)
+	affinity_dir = os.path.join(save_dir, 'affi', seq_name); #mkdir_if_missing(affinity_dir)
+	affinity_vis = os.path.join(save_dir, 'affi_vis', seq_name);# mkdir_if_missing(affinity_vis)
 
 	return eval_file_dict, save_trk_dir, affinity_dir, affinity_vis
 

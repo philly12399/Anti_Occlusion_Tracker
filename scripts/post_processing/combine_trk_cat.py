@@ -69,6 +69,8 @@ def combine_trk_cat(split, dataset, method, suffix, num_hypo, config_path, root_
 		# copy label for shortcut
 		all_label_path = os.path.join(save_root,'../data_0/')
 		copy_label_path = os.path.join(root_dir,'label')
+		if os.path.exists(copy_label_path):
+			os.system(f"rm -r  {copy_label_path}")
 		os.system(f"cp -r {all_label_path} {copy_label_path}")
 if __name__ == '__main__':
 	args = parse_args()

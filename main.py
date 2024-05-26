@@ -129,8 +129,8 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num):
             # note that the saved value in affinity can be different in reality because it is between the
             # original detections and ego-motion compensated predicted tracklets, rather than between the
             # actual two sets of output tracklets
-            save_affi_file = os.path.join(affinity_dir, '%06d.npy' % frame)
-            save_affi_vis  = os.path.join(affinity_vis, '%06d.txt' % frame)
+            # save_affi_file = os.path.join(affinity_dir, '%06d.npy' % frame)
+            # save_affi_vis  = os.path.join(affinity_vis, '%06d.txt' % frame)
             # if (affi is not None) and (affi.shape[0] + affi.shape[1] > 0):
             #     # save affinity as long as there are tracklets in at least one frame
             #     np.save(save_affi_file, affi)
@@ -195,7 +195,6 @@ def main(args):
         
     for cat in cfg.cat_list:
         ID_start = main_per_cat(cfg, cat, log, ID_start, args.frame)
-
     # combine results for every category
     print_log('\ncombining results......', log=log)
     
