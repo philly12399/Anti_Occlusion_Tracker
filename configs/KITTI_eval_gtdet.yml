@@ -4,11 +4,11 @@ description                  : AB3DMOT
 seed                         : 0
 
 # --------------- main.py
-save_root                    : ./tracker_exp_local/KITTI/baseline
+save_root                    : ./tracker_exp_local/KITTI/exp
 dataset                      : KITTI      # KITTI
 split                        : val        # val, test
-det_name                     : gt  # name of the detector [pointrcnn, pvrcnn]/ gt
-cat_list                     : ['car'] #['Car', 'Pedestrian', 'Cyclist']
+det_name                     : diff0  # name of the detector [pointrcnn, pvrcnn]/ gt
+cat_list                     : ['car','cyclist'] #['Car', 'Pedestrian', 'Cyclist']
 
 score_threshold              : -10000     # filter out tracklet with low confidence if necessary, default no filtering here but do it in trk_conf_threshold.py
 num_hypo                     : 1          # >1 to allow multi-hypothesis tracking
@@ -18,8 +18,8 @@ ego_com                      : true      # turn on only slightly reduce speed bu
 vis                          : false       # only for debug or visualization purpose, will significantly reduce speed
 affi_pro                     : false
 #---------------- addition
-label_format                 : KITTI      # Kitti, Waymo, nuscenes
-label_coord                   : camera       # lidar or camera
+label_format                 : Kitti      # Kitti, Waymo, nuscenes, AB3DMOT
+label_coord                  : camera       # lidar or camera
 pcd_db_root                  : ""
 class_map                    : {} #lower case
 buffer_size                  : 10
@@ -32,5 +32,5 @@ NDT_out_path                 : ""
 seq_eval                     : [0,1,2,4,5,10,11,13,15,16] #sequence to track, [] means by default
 #---------------AB3DMOT base
 use_default                  : False
-base_param                   : {'algm': 'hungar', 'metric': 'giou_3d', 'thres': -0.2, 'min_hits': 3, 'max_age': 2}
+base_param                   : {'algm': 'hungar', 'metric': 'giou_3d', 'thres': -0.2, 'min_hits': 1, 'max_age': 2}
 

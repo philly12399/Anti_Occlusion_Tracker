@@ -3,14 +3,14 @@
 description                  : KITTI
 # ------------------- Path Options -------------------------
 gt_path                      : "/home/philly12399/thesis/AB3DMOT/scripts/KITTI/label/" 
-trk_path                     : "/home/philly12399/thesis/AB3DMOT/tracker_exp_local/KITTI/baseline/label"
-out_path                     : "/home/philly12399/thesis/AB3DMOT/tracker_exp_local/KITTI/baseline/"
+trk_path                     : "/home/philly12399/thesis/AB3DMOT/tracker_exp_local/KITTI/exp/label"
+out_path                     : "/home/philly12399/thesis/AB3DMOT/tracker_exp_local/KITTI/exp/"
 calib_path                   : "/home/philly12399/philly_data/KITTI_tracking/training/calib/" 
 exp_name                     : eval
 # ------------------- Eval Options -------------------------
 iou                          : 3D
 threshold                    : [0.25,0.5]
-class_name                   : ['car']
+class_name                   : ['car','cyclist']
 gt_format                    : KITTI
 trk_format                   : KITTI
 num_hypo                     : 1
