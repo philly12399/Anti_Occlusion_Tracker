@@ -2,6 +2,8 @@ import os
 import sys
 import click
 from xinshuo_io import mkdir_if_missing
+import pdb
+
 @click.command()
 ### Add your options here
 @click.option(
@@ -33,7 +35,7 @@ from xinshuo_io import mkdir_if_missing
     help="Name of exp.",
 )
 def main(det_root, config, output, exp):
-    diff_range=[0,4]
+    diff_range=[0,1,2,3,4]
     output_path = os.path.join(output,exp)
     if os.path.exists(output_path):
         os.system(f"rm -r {output_path}")
@@ -42,7 +44,9 @@ def main(det_root, config, output, exp):
         
     os.system(f"mkdir -p {output_path}")
     # os.system(f"source env.sh")
-    link = os.path.join(det_root, "det_link")    
+    link = os.path.join(det_root, "det_link")   
+    if os.path.exists(link):
+        os.system(f"unlink {link}") 
     for d in diff_range:
         target = f"diff{d}"
         print(f"============================ Run {target} ============================")
@@ -50,6 +54,7 @@ def main(det_root, config, output, exp):
         os.system(f"python3 main.py --config ./configs/{config}")
         os.system(f"python3 ./scripts/KITTI/evaluate.py --config ./eval_configs/{config}")
         os.system(f"mv {output}/exp {output_path}/{target}")
-    os.system(f"unlink {link}")
+        os.system(f"unlink {link}")
+    
 if __name__ == "__main__":
     main()

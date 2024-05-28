@@ -1219,7 +1219,9 @@ def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path
         filename = os.path.join(out_path, "summary_%s_average_%s.txt" % (c, suffix))
         dump = open(filename, "w+")
         stat_meter = stat(t_sha=result_sha, cls=c, suffix=suffix, dump=dump)
-        print("No threshold",file=dump)
+        evalmsg=f"Evaluate Class {c} @IoU {thres}"
+        print(evalmsg,file=dump)
+        mail.msg(evalmsg)
         e.compute3rdPartyMetrics()
         e.saveToStats(dump)
         if(average):
