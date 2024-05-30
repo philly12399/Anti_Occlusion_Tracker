@@ -7,12 +7,11 @@ from xinshuo_io import mkdir_if_missing, load_txt_file, save_txt_file
 ################## loading
 
 def load_detection(file, format="",cat = "",cls_map = {}):
-	# load from raw file
-	cat_low = cat.lower()    
+	# load from raw file 
 	with warnings.catch_warnings():
 		warnings.simplefilter("ignore")
-		if(format.lower()=="wayside"): str2id = {'car':1,'cyclist':2,'filtered':-1}
-		elif(format.lower()=="kitti"): str2id = {'car':2,'cyclist':3,'filtered':-1}		
+		if(format.lower()=="wayside"): str2id = {'car':1,'cyclist':2}
+		elif(format.lower()=="kitti"): str2id = {'car':2,'cyclist':3}		
   
 		if(format.lower()=="wayside" or format.lower()=="kitti" ):
 			
@@ -22,9 +21,10 @@ def load_detection(file, format="",cat = "",cls_map = {}):
 			for i in range(len(dets1)):
 				dets2[i][2] = dets2[i][2].lower()
 				if(dets2[i][2] in cls_map): #truck to car
-					dets2[i][2] = cls_map[dets2[i][2]]	     				
+					dets2[i][2] = cls_map[dets2[i][2]]	  
+				if(dets2[i][2] not in str2id):    continue
 				dets1[i][2] = str2id[dets2[i][2]]
-				if(dets1[i][2] == str2id[cat_low]):
+				if(dets1[i][2] == str2id[cat.lower()]):
 					l.append(dets1[i])
 			dets = np.array(l)
 		elif(format.lower()=="ab3dmot"):
