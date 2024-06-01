@@ -509,7 +509,6 @@ class AB3DMOT(object):
         # tracks propagation based on velocity
         trks = self.prediction(frame, history = self.history)
         old_trks = trks
-
         ## Comment for wayside (don't need)
         # # ego motion compensation, adapt to the current frame of camera coordinate
         # if (frame > 0) and (self.ego_com) and (self.oxts is not None):

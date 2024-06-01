@@ -73,7 +73,7 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num):
     for seq_name in seq_eval:
         
         seq_file = os.path.join(det_root, seq_name+'.txt')
-        seq_dets, flag = load_detection(seq_file, format=cfg.label_format, cat=cat, cls_map = class_map) 	# load detection
+        seq_dets, flag, frame_det_idx = load_detection(seq_file, format=cfg.label_format, cat=cat, cls_map = class_map) 	# load detection
 
         # create folders for saving
         eval_file_dict, save_trk_dir, affinity_dir, affinity_vis = \
@@ -90,7 +90,8 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num):
 
         ##Pcd info
         if(cfg.NDT_flag):
-            pcd_info_seq = pcd_info_seq_preprocess(pcd_info[seq_name], pcd_db, min_frame, max_frame, class_map, cat)
+            pcd_info_seq = pcd_info_seq_preprocess(pcd_info[seq_name], pcd_db, max_frame-min_frame+1, frame_det_idx)
+            
         for frame in range(min_frame, max_frame + 1):
             if(frame >= frame_num and args.frame!=-1):
                 break
@@ -110,14 +111,15 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num):
             dets_frame = get_frame_det(seq_dets, frame, format=cfg.label_format)
             TT.append(time.time())
             ## load PCDs
-            if(cfg.NDT_flag):
+            if(cfg.NDT_flag):                
                 pcd_info_frame = pcd_info_seq[frame-min_frame]                
                 pcd_frame = load_dense_byinfo(pcd_info_frame)
             else:
                 pcd_frame = [None for i in range(len(dets_frame['dets']))]
-                
+
             TT.append(time.time())
             assert len(pcd_frame) == len(dets_frame['dets'])
+            continue
             # print(f"load_pcd_time:{TT[3]-TT[2]}s ; load_label_time:{TT[2]-TT[1]}s")
             since = time.time()
             results, affi = tracker.track(dets_frame, frame, seq_name, pcd_frame)
