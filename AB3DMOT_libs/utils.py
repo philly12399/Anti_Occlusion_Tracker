@@ -119,7 +119,7 @@ def initialize(cfg, data_root, save_dir, subfolder, seq_name, cat, ID_start, hw,
     if cfg.num_hypo > 1:
         tracker = AB3DMOT_multi(cfg, cat, calib=calib, oxts=imu_poses, img_dir=img_seq, vis_dir=vis_dir, hw=hw, log=log_file, ID_init=ID_start) 
     elif cfg.num_hypo == 1:
-        tracker = AB3DMOT(cfg, cat, calib=calib, oxts=imu_poses, img_dir=img_seq, vis_dir=vis_dir, hw=hw, log=log_file, ID_init=ID_start) 
+        tracker = AB3DMOT(cfg, cat, calib=calib, oxts=imu_poses, img_dir=img_seq, vis_dir=vis_dir, hw=hw, log=log_file, ID_init=ID_start, seq_name = seq_name) 
     else: assert False, 'error'
     
     

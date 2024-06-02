@@ -21,7 +21,7 @@ np.set_printoptions(suppress=True, precision=3)
 
 # A Baseline of 3D Multi-Object Tracking
 class AB3DMOT(object):			  	
-    def __init__(self, cfg, cat, calib=None, oxts=None, img_dir=None, vis_dir=None, hw=None, log=None, ID_init=0):                    
+    def __init__(self, cfg, cat, calib=None, oxts=None, img_dir=None, vis_dir=None, hw=None, log=None, ID_init=0, seq_name = ""):                    
 
         # vis and log purposes
         self.img_dir = img_dir
@@ -58,18 +58,16 @@ class AB3DMOT(object):
         self.history = cfg.history
         
         Box3D.set_label_format(self.label_format)
+        print(seq_name)
         ##NDT
         self.NDT_flag = cfg.NDT_flag
-        self.NDT_cfg = cfg.NDT_cfg
-            
-        self.NDT_out_path = None
         if(self.NDT_flag):
-            self.NDT_out_path = cfg.NDT_out_path
-            det_path=os.path.join(self.NDT_out_path, f"det_{self.cat}")
-            trk_path=os.path.join(self.NDT_out_path, f"trk_{self.cat}")            
-            os.system(f"mkdir -p {det_path}")
-            os.system(f"mkdir -p {trk_path}")
-
+            self.NDT_cfg  = cfg.NDT_cfg
+            self.NDT_MODE = cfg.NDT_MODE
+            self.NDT_cache_path = os.path.join(cfg.NDT_cache_path,seq_name)
+            if(self.NDT_MODE == "write"):
+                os.system(f"mkdir -p {self.NDT_cache_path}")
+                
         self.ego_com_list=[]
           # debug
         # self.debug_id = 2
@@ -476,7 +474,7 @@ class AB3DMOT(object):
 
         return affi
 
-    def track(self, dets_all, frame, seq_name, pcd):
+    def track(self, dets_all, frame, seq_name, pcd, det_idx):
         
         """
         Params:
@@ -509,44 +507,30 @@ class AB3DMOT(object):
         # tracks propagation based on velocity
         trks = self.prediction(frame, history = self.history)
         old_trks = trks
-        ## Comment for wayside (don't need)
-        # # ego motion compensation, adapt to the current frame of camera coordinate
-        # if (frame > 0) and (self.ego_com) and (self.oxts is not None):
-        #     trks = self.ego_motion_compensation(frame, trks)
-        
-        # # visualization
-        # if self.vis and (self.vis_dir is not None):
-        # 	img = os.path.join(self.img_dir, f'{frame:06d}.png')
-        # 	save_path = os.path.join(self.vis_dir, f'{frame:06d}.jpg'); mkdir_if_missing(save_path)
-        # 	self.visualization(img, dets, trks, self.calib, self.hw, save_path)
+
         if(self.NDT_flag):
-            NDT_LOAD_PKL=False
             ## For Multi threading 
             NDT_Voxels = []
             MT_pcd = copy.copy(pcd)
             MT_dets = copy.copy(dets)
             update_tid=[]
-            ## some trk don't need voxelize again
-            for i,t in enumerate(self.track_buf):
-                if(t.NDT_updated == False and t.pcd_of_track is not None): 
-                    mean_box = Box3D.array2bbox(np.append([0,0,0,0],np.mean(t.bbox,0)[-3:]))   
-                    MT_pcd.append(t.pcd_of_track)
-                    update_tid.append(i)
-                    MT_dets.append(mean_box)
-                    
+            
+            # ## some trk don't need voxelize again
+            # for i,t in enumerate(self.track_buf):
+            #     if(t.NDT_updated == False and t.pcd_of_track is not None): 
+            #         mean_box = Box3D.array2bbox(np.append([0,0,0,0],np.mean(t.bbox,0)[-3:]))   
+            #         MT_pcd.append(t.pcd_of_track)
+            #         update_tid.append(i)
+            #         MT_dets.append(mean_box)
+            frame_str = str(frame).zfill(6)
             ## Multi threading 
-            if(NDT_LOAD_PKL):
-                ## Update result for  det/trk
-                for i in range(len(MT_pcd)):
-                    if(i < len(pcd)): ##det
-                        NDTV = read_pkl(os.path.join(self.NDT_out_path, f"det_{self.cat}/{frame}_{i}"))
-                        NDT_Voxels.append(NDTV)
-                    else: ##track
-                        NDTV = read_pkl(os.path.join(self.NDT_out_path, f"trk_{self.cat}/{frame}_{update_tid[i-len(pcd)]}"))                  
-                        t = self.track_buf[update_tid[i-len(pcd)]]
-                        t.update_NDT(NDTV)
-                    # draw_NDT_voxel(NDTV)
-            else:            
+            if(self.NDT_MODE == "load"):
+                ## Update result for det
+                for i in range(len(pcd)):
+                    NDTV = read_pkl(os.path.join(self.NDT_cache_path, f"{frame_str}_{str(det_idx[i]).zfill(4)}_{self.cat}.pkl"))
+                    NDT_Voxels.append(NDTV)
+
+            elif(self.NDT_MODE == "write"):          
                 if(len(MT_pcd)>0):
                     ## Multi threading init
                     pool = [Pool() for _ in range(len(MT_pcd))]
@@ -560,24 +544,19 @@ class AB3DMOT(object):
                     for p in pool:  p.close() 
                     ## Update result for  det/trk
                     for i in range(len(MT_pcd)):
-                        if(i < len(pcd)): ##det
-                            NDT_Voxels.append(result[i])
-                        else: ##track
-                            t = self.track_buf[update_tid[i-len(pcd)]]
-                            t.update_NDT(result[i])
-                            # if(t.id == 3):   
-                            #     print(frame)                     
-                            #     draw_NDT_voxel(t.NDT_of_track)
+                        NDT_Voxels.append(result[i])
+                        # else: ##track
+                        #     t = self.track_buf[update_tid[i-len(pcd)]]
+                        #     t.update_NDT(result[i])
                 
                 for i, NDTV in enumerate(NDT_Voxels):
-                    with open(os.path.join(self.NDT_out_path, f"det_{self.cat}/{frame}_{i}"), 'wb') as file:
+                    with open(os.path.join(self.NDT_cache_path, f"{frame_str}_{str(det_idx[i]).zfill(4)}_{self.cat}.pkl"), 'wb') as file:
                         pickle.dump(NDTV, file)
-                for i, tid in enumerate(update_tid):
-                    with open(os.path.join(self.NDT_out_path, f"trk_{self.cat}/{frame}_{tid}"), 'wb') as file:
-                        pickle.dump(self.track_buf[tid].NDT_of_track, file)
+                # for i, tid in enumerate(update_tid):
+                #     with open(os.path.join(self.NDT_out_path, f"trk_{self.cat}/{frame}_{tid}"), 'wb') as file:
+                #         pickle.dump(self.track_buf[tid].NDT_of_track, file)
         else:
             NDT_Voxels = [[] for i in range(len(dets))]   
-        
         
         # matching
 

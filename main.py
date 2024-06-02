@@ -11,7 +11,7 @@ from xinshuo_io import mkdir_if_missing, save_txt_file
 from xinshuo_miscellaneous import get_timestring, print_log
 from Philly_libs.philly_io import *
 from Philly_libs.philly_utils import *
-
+from datetime import datetime
 def parse_args():
     parser = argparse.ArgumentParser(description='AB3DMOT')
     # parser.add_argument('--dataset', type=str, default='nuScenes', help='KITTI, nuScenes, Wayside')
@@ -50,10 +50,6 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num):
         pcd_info = read_pkl(os.path.join(pcd_db_root, 'info.pkl'))
         pcd_db = os.path.join(pcd_db_root, 'gt_database')
 
-    ##CLASS MAP
-    class_map = {}
-    if('class_map' in cfg):
-        class_map = cfg.class_map
     ##SEQ SETTING
     subfolder, det_id2str, hw, seq_eval, data_root = get_subfolder_seq(cfg.dataset, cfg.split)
     if(cfg.seq_eval != []):
@@ -73,7 +69,7 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num):
     for seq_name in seq_eval:
         
         seq_file = os.path.join(det_root, seq_name+'.txt')
-        seq_dets, flag, frame_det_idx = load_detection(seq_file, format=cfg.label_format, cat=cat, cls_map = class_map) 	# load detection
+        seq_dets, flag, frame_det_idx = load_detection(seq_file, format=cfg.label_format, cat=cat) 	# load detection
 
         # create folders for saving
         eval_file_dict, save_trk_dir, affinity_dir, affinity_vis = \
@@ -119,10 +115,9 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num):
 
             TT.append(time.time())
             assert len(pcd_frame) == len(dets_frame['dets'])
-            continue
             # print(f"load_pcd_time:{TT[3]-TT[2]}s ; load_label_time:{TT[2]-TT[1]}s")
             since = time.time()
-            results, affi = tracker.track(dets_frame, frame, seq_name, pcd_frame)
+            results, affi = tracker.track(dets_frame, frame, seq_name, pcd_frame, frame_det_idx[frame])
             # print(f"tracker_total_time:{time.time()-since}s")
             total_time += time.time() - since
 
@@ -194,7 +189,32 @@ def main(args):
     # run tracking for each category
     #cat to capitalize
     cfg.cat_list = [cat.capitalize() for cat in cfg.cat_list]
+    timestr = datetime.now().strftime("%m-%d-%H-%M") 
+
+    if(cfg.NDT_flag):
+        LW=cfg.NDT_Load_Write 
+        if(LW['write'] and LW['load']):
+            print('NDT cache load and write cannot be both True')
+            assert False       
+        if(LW['write']):
+            cfg.NDT_MODE="write"            
+            NDT_cache_path = os.path.join(cfg.NDT_cache_root,cfg.NDT_cache_name)
+            if(os.path.exists(NDT_cache_path)):
+                print(f"NDT cache {NDT_cache_path} exist;")               
+                NDT_cache_path = os.path.join(cfg.NDT_cache_root,f"{cfg.NDT_cache_name}_{timestr}")
+                print(f"Write NDT cache to {NDT_cache_path}")               
+            os.system(f"mkdir -p {NDT_cache_path}")   
+            cfg.NDT_cache_path = NDT_cache_path
+                     
+        elif(LW['load']): 
+            cfg.NDT_MODE="load"                        
+            NDT_cache_path = os.path.join(cfg.NDT_cache_root,cfg.NDT_cache_name)
+            if(not os.path.exists(NDT_cache_path)):
+                print(f"Load NDT cache failed, {NDT_cache_path} not exists")
+                assert False                 
+            cfg.NDT_cache_path = NDT_cache_path
         
+            
     for cat in cfg.cat_list:
         ID_start = main_per_cat(cfg, cat, log, ID_start, args.frame)
     # combine results for every category

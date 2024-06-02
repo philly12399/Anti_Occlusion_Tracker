@@ -5,7 +5,7 @@ import warnings, numpy as np, os
 from xinshuo_io import mkdir_if_missing, load_txt_file, save_txt_file
 
 ################## loading
-def load_detection(file, format="",cat = "",cls_map = {}):
+def load_detection(file, format="",cat = ""):
     # load from raw file 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
