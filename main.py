@@ -189,32 +189,7 @@ def main(args):
     # run tracking for each category
     #cat to capitalize
     cfg.cat_list = [cat.capitalize() for cat in cfg.cat_list]
-    timestr = datetime.now().strftime("%m-%d-%H-%M") 
 
-    if(cfg.NDT_flag):
-        LW=cfg.NDT_Load_Write 
-        if(LW['write'] and LW['load']):
-            print('NDT cache load and write cannot be both True')
-            assert False       
-        if(LW['write']):
-            cfg.NDT_MODE="write"            
-            NDT_cache_path = os.path.join(cfg.NDT_cache_root,cfg.NDT_cache_name)
-            if(os.path.exists(NDT_cache_path)):
-                print(f"NDT cache {NDT_cache_path} exist;")               
-                NDT_cache_path = os.path.join(cfg.NDT_cache_root,f"{cfg.NDT_cache_name}_{timestr}")
-                print(f"Write NDT cache to {NDT_cache_path}")               
-            os.system(f"mkdir -p {NDT_cache_path}")   
-            cfg.NDT_cache_path = NDT_cache_path
-                     
-        elif(LW['load']): 
-            cfg.NDT_MODE="load"                        
-            NDT_cache_path = os.path.join(cfg.NDT_cache_root,cfg.NDT_cache_name)
-            if(not os.path.exists(NDT_cache_path)):
-                print(f"Load NDT cache failed, {NDT_cache_path} not exists")
-                assert False                 
-            cfg.NDT_cache_path = NDT_cache_path
-        
-            
     for cat in cfg.cat_list:
         ID_start = main_per_cat(cfg, cat, log, ID_start, args.frame)
     # combine results for every category

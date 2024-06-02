@@ -63,11 +63,11 @@ class AB3DMOT(object):
         self.NDT_flag = cfg.NDT_flag
         if(self.NDT_flag):
             self.NDT_cfg  = cfg.NDT_cfg
-            self.NDT_MODE = cfg.NDT_MODE
-            self.NDT_cache_path = os.path.join(cfg.NDT_cache_path,seq_name)
-            if(self.NDT_MODE == "write"):
-                os.system(f"mkdir -p {self.NDT_cache_path}")
-                
+            self.NDT_cache_path = os.path.join(cfg.NDT_cache_root,cfg.NDT_cache_name,seq_name)                    
+            if(not os.path.exists(self.NDT_cache_path)):
+                print(f"Load NDT cache failed, {self.NDT_cache_path} not exists")
+                assert False
+                                
         self.ego_com_list=[]
           # debug
         # self.debug_id = 2
@@ -509,52 +509,11 @@ class AB3DMOT(object):
         old_trks = trks
 
         if(self.NDT_flag):
-            ## For Multi threading 
-            NDT_Voxels = []
-            MT_pcd = copy.copy(pcd)
-            MT_dets = copy.copy(dets)
-            update_tid=[]
-            
-            # ## some trk don't need voxelize again
-            # for i,t in enumerate(self.track_buf):
-            #     if(t.NDT_updated == False and t.pcd_of_track is not None): 
-            #         mean_box = Box3D.array2bbox(np.append([0,0,0,0],np.mean(t.bbox,0)[-3:]))   
-            #         MT_pcd.append(t.pcd_of_track)
-            #         update_tid.append(i)
-            #         MT_dets.append(mean_box)
+            NDT_Voxels = []            
             frame_str = str(frame).zfill(6)
-            ## Multi threading 
-            if(self.NDT_MODE == "load"):
-                ## Update result for det
-                for i in range(len(pcd)):
-                    NDTV = read_pkl(os.path.join(self.NDT_cache_path, f"{frame_str}_{str(det_idx[i]).zfill(4)}_{self.cat}.pkl"))
-                    NDT_Voxels.append(NDTV)
-
-            elif(self.NDT_MODE == "write"):          
-                if(len(MT_pcd)>0):
-                    ## Multi threading init
-                    pool = [Pool() for _ in range(len(MT_pcd))]
-                    ## Multi threading and run NDT_voxelize(non blocking)
-                    thread=[pool[i].apply_async(NDT_voxelize, (MT_pcd[i],MT_dets[i],self.NDT_cfg))  for i in range(len(MT_pcd))]
-                    result=[None for _ in range(len(MT_pcd))]
-                    ## Collect result(blocking)
-                    for i in range(len(MT_pcd)):
-                        result[i],_,_ = thread[i].get(timeout=50)  #valid,invalid,all ; collect valid only
-                    ## Clean  pool
-                    for p in pool:  p.close() 
-                    ## Update result for  det/trk
-                    for i in range(len(MT_pcd)):
-                        NDT_Voxels.append(result[i])
-                        # else: ##track
-                        #     t = self.track_buf[update_tid[i-len(pcd)]]
-                        #     t.update_NDT(result[i])
-                
-                for i, NDTV in enumerate(NDT_Voxels):
-                    with open(os.path.join(self.NDT_cache_path, f"{frame_str}_{str(det_idx[i]).zfill(4)}_{self.cat}.pkl"), 'wb') as file:
-                        pickle.dump(NDTV, file)
-                # for i, tid in enumerate(update_tid):
-                #     with open(os.path.join(self.NDT_out_path, f"trk_{self.cat}/{frame}_{tid}"), 'wb') as file:
-                #         pickle.dump(self.track_buf[tid].NDT_of_track, file)
+            for i in range(len(pcd)):
+                NDTV = read_pkl(os.path.join(self.NDT_cache_path, f"{frame_str}_{str(det_idx[i]).zfill(4)}_{self.cat}.pkl"))
+                NDT_Voxels.append(NDTV)                
         else:
             NDT_Voxels = [[] for i in range(len(dets))]   
         

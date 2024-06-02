@@ -6,6 +6,7 @@ import math
 from Philly_libs.NDTPDF import PDF
 from Philly_libs.philly_utils import in_bbox,draw_pts
 import time
+import pdb
 def test(track_root='./output_bytrackid/car_mark_all_rotxy'):
     np.random.seed(0)
     track_path = {}
