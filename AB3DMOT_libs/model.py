@@ -8,7 +8,7 @@ from AB3DMOT_libs.kalman_filter import KF
 from AB3DMOT_libs.vis import vis_obj
 from Philly_libs.philly_matching import data_association as data_association_philly
 from Philly_libs.TrackBuffer import TrackBuffer , KF_predict
-from Philly_libs.NDT import NDT_voxelize,draw_NDT_voxel
+from Philly_libs.NDT import draw_NDT_voxel
 from Philly_libs.philly_io import read_pkl
 from Philly_libs.kitti_utils import *
 from xinshuo_miscellaneous import print_log
@@ -58,7 +58,6 @@ class AB3DMOT(object):
         self.history = cfg.history
         
         Box3D.set_label_format(self.label_format)
-        print(seq_name)
         ##NDT
         self.NDT_flag = cfg.NDT_flag
         if(self.NDT_flag):
@@ -512,8 +511,12 @@ class AB3DMOT(object):
             NDT_Voxels = []            
             frame_str = str(frame).zfill(6)
             for i in range(len(pcd)):
-                NDTV = read_pkl(os.path.join(self.NDT_cache_path, f"{frame_str}_{str(det_idx[i]).zfill(4)}_{self.cat}.pkl"))
-                NDT_Voxels.append(NDTV)                
+                cache_name=f"{frame_str}_{str(det_idx[i]).zfill(4)}_{self.cat.lower()}.pkl"
+                NDTV = read_pkl(os.path.join(self.NDT_cache_path, cache_name))
+                NDT_Voxels.append(NDTV)
+                # if(NDTV!=None):
+                #     print(cache_name)                    
+                #     draw_NDT_voxel(NDTV,random=False)        
         else:
             NDT_Voxels = [[] for i in range(len(dets))]   
         

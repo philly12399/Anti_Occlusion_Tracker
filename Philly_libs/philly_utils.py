@@ -16,7 +16,7 @@ def pcd_info_seq_preprocess(pcd_info, pcd_db_seq_root, frame_num, frame_det_idx)
         pp['mae_dense_path'] = os.path.join(pcd_db_seq_root, pp['mae_dense_path'])	
         frame_seq.append(pp)
   
-    for i in range(len(frame_det_idx)):
+    for i in range(frame_num):
         assert len(pcd_info_seq[i]) == len(frame_det_idx[i])
         for j in range(len(frame_det_idx[i])):
             id=pcd_info_seq[i][j]['obj_det_idx']
@@ -51,10 +51,19 @@ def in_bbox(point, bbox):
     z_max = bbox.z + bbox.h / 2
     return (x >= x_min) & (x <= x_max) & (y >= y_min) & (y <= y_max) & (z >= z_min) & (z <= z_max)
 
-def draw_pts(pts):
-    pcd = o3d.geometry.PointCloud()
-    pcd.points = o3d.utility.Vector3dVector(pts)
-    o3d.visualization.draw_geometries([pcd,], width=800, height=500)
+# def draw_pts(pts):
+#     pcd = o3d.geometry.PointCloud()
+#     pcd.points = o3d.utility.Vector3dVector(pts)
+#     o3d.visualization.draw_geometries([pcd,], width=800, height=500)
+    
+def make_bbox(box):
+    b = o3d.geometry.OrientedBoundingBox()
+    # b.center = [0,0,0]    
+    b.center = [box['x'],box['y'],box['z']]    
+    b.extent = [box['l'],box['w'],box['h']]
+    R = o3d.geometry.OrientedBoundingBox.get_rotation_matrix_from_xyz((0, 0,box['roty']))
+    b.rotate(R, b.center)
+    return b
 
 def random_sample(n,c):
     randomi = np.arange(n)

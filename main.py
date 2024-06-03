@@ -23,7 +23,7 @@ def parse_args():
     args = parser.parse_args()
     return args
 
-def main_per_cat(cfg, cat, log, ID_start, frame_num):
+def main_per_cat(cfg, cat, log, ID_start, frame_num_to_trk):
     # get data-cat-split specific path
     # print(cfg)
     np.random.seed(0)
@@ -83,13 +83,15 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num):
         
         # loop over frame
         min_frame, max_frame = int(frame_list[0]), int(frame_list[-1])
-
+        frame_num = max_frame-min_frame+1
+        for i in range(frame_num - len(frame_det_idx)):
+            frame_det_idx.append([])
         ##Pcd info
         if(cfg.NDT_flag):
-            pcd_info_seq = pcd_info_seq_preprocess(pcd_info[seq_name], pcd_db, max_frame-min_frame+1, frame_det_idx)
-            
+            pcd_info_seq = pcd_info_seq_preprocess(pcd_info[seq_name], pcd_db, frame_num, frame_det_idx)
+
         for frame in range(min_frame, max_frame + 1):
-            if(frame >= frame_num and args.frame!=-1):
+            if(frame >= frame_num_to_trk and args.frame!=-1):
                 break
             # add an additional frame here to deal with the case that the last frame, although no detection
             # but should output an N x 0 affinity for consistency

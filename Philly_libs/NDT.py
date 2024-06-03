@@ -4,7 +4,8 @@ import numpy as np
 import open3d as o3d 
 import math
 from Philly_libs.NDTPDF import PDF
-from Philly_libs.philly_utils import in_bbox,draw_pts
+from Philly_libs.philly_utils import in_bbox
+from Philly_libs.plot import *
 import time
 import pdb
 def test(track_root='./output_bytrackid/car_mark_all_rotxy'):
@@ -300,12 +301,20 @@ class NDT_Voxel:
    
     def get_direction(self, p):
         return np.sign([p[0]-self.x,p[1]-self.y,p[2]-self.z])
-    
-def draw_NDT_voxel(vs, NUM_SAMPLES=100):
-    random_sample_pts = []
-    for v in vs:
-        samples = np.random.multivariate_normal(v.mean, v.cov, NUM_SAMPLES)
-        random_sample_pts.append(samples.tolist())       
-    random_sample_pts = np.array(random_sample_pts).reshape(-1,3) 
-    draw_pts(random_sample_pts)
-    return random_sample_pts
+
+
+def draw_NDT_voxel(vs, random=True,NUM_SAMPLES=100):
+    if(random):
+        random_sample_pts = []
+        for v in vs:
+            samples = np.random.multivariate_normal(v.mean, v.cov, NUM_SAMPLES)
+            random_sample_pts.append(samples.tolist())       
+        random_sample_pts = np.array(random_sample_pts).reshape(-1,3) 
+        draw_pcd(random_sample_pts)
+    else:
+        pts = []
+        for v in vs:
+            pts.extend(v.pts.tolist())
+        pts = np.array(pts)    
+        draw_pcd(pts)
+    return 
