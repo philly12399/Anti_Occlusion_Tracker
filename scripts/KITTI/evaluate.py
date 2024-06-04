@@ -212,7 +212,9 @@ class trackingEvaluation(object):
         # is expanded if necessary and reduced in any case
         self.gt_trajectories            = [[] for x in range(self.n_sequences)]
         self.ign_trajectories           = [[] for x in range(self.n_sequences)]
-
+        
+        self.other_stats = {}
+        
     def loadGroundtruth(self):
         """
             Helper function to load ground truth.
@@ -251,7 +253,6 @@ class trackingEvaluation(object):
         seq_data           = []
         n_trajectories     = 0
         n_trajectories_seq = []
-
         for seq, s_name in enumerate(self.sequence_name):
             i              = 0
             filename       = os.path.join(root_dir, "%s.txt" % s_name)   
@@ -370,7 +371,7 @@ class trackingEvaluation(object):
             self.eval_2d = eval_2d
             self.eval_3d = eval_3d
             self.n_tr_seq = n_trajectories_seq
-            if self.n_tr_trajectories==0:
+            if self.n_tr_trajectories==0:                
                 return False
         else:
             # split ground truth and DontCare areas
@@ -476,7 +477,9 @@ class trackingEvaluation(object):
         
         self.gt_trajectories            = [[] for x in range(self.n_sequences)]
         self.ign_trajectories           = [[] for x in range(self.n_sequences)]
-
+        
+        self.other_stats = {}
+        
         return 
 
     def compute3rdPartyMetrics(self, threshold=-10000, recall_thres=1.0):
@@ -836,13 +839,37 @@ class trackingEvaluation(object):
             self.n_itrs.append(seqitr)
         # compute MT/PT/ML, fragments, idswitches for all groundtruth trajectories
         n_ignored_tr_total = 0
+        
+        ids_cnt_seq={}
+        ids_seq={}
+        ##Count merged track, two diffetent track merged
+        merged_track_cnt={}
+        merged_track={}
         for seq_idx, (seq_trajectories,seq_ignored) in enumerate(zip(self.gt_trajectories, self.ign_trajectories)):
             if len(seq_trajectories)==0:
                 continue
             tmpMT, tmpML, tmpPT, tmpId_switches, tmpFragments = [0]*5
             n_ignored_tr = 0
+            ##IDS tracker
+            ids_cnt_seq[seq_idx] = 0
+            ids_seq_list = []
+            ##Count merged track, two diffetent track merged
+            merged_track_cnt[seq_idx] = 0
+            merged_track[seq_idx] = []        
+            used_id={}
+            
             for g, ign_g in zip(seq_trajectories.values(), seq_ignored.values()):
-                # all frames of this gt trajectory are ignored                
+                # all frames of this gt trajectory are ignored  
+                ##Count merged track, two diffetent track merged      
+                id_this_trk=set(g)
+                if(-1 in id_this_trk):        
+                    id_this_trk.remove(-1)
+                for set_id in id_this_trk:
+                    if set_id not in used_id:   used_id[set_id] = 1
+                    else:   
+                        merged_track_cnt[seq_idx] += 1
+                        merged_track[seq_idx].append(set_id)
+                        
                 if all(ign_g):
                     n_ignored_tr+=1
                     n_ignored_tr_total+=1
@@ -865,6 +892,7 @@ class trackingEvaluation(object):
                     if last_id != g[f] and last_id != -1 and g[f] != -1:  #and  g[f-1] != -1:
                         tmpId_switches   += 1
                         self.id_switches += 1
+                        ids_seq_list.append((last_id,g[f]))
                     if f < len(g)-1 and g[f-1] != g[f] and last_id != -1 and g[f] != -1: #and g[f+1] != -1:
                         tmpFragments   += 1
                         self.fragments += 1
@@ -887,7 +915,12 @@ class trackingEvaluation(object):
                 else: # 0.2 <= tracking_ratio <= 0.8
                     tmpPT   += 1
                     self.PT += 1
-
+                ids_cnt_seq[seq_idx] = tmpId_switches
+                ids_seq[seq_idx] = ids_seq_list
+        ##PHILLY EXP STATS 
+        self.other_stats = {"merged_track":merged_track,"merged_track_cnt":merged_track_cnt, "ids_cnt_seq":ids_cnt_seq, "ids_seq":ids_seq}           
+        
+                   
         if (self.n_gt_trajectories-n_ignored_tr_total)==0:
             self.MT = 0.
             self.PT = 0.
@@ -991,8 +1024,17 @@ class trackingEvaluation(object):
         summary += self.printEntry("Ignored Tracker Objects", self.n_itr) + "\n"
         #summary += self.printEntry("Ignored Tracker Objects per Sequence", self.n_itrs) + "\n"
         summary += self.printEntry("Tracker Trajectories", self.n_tr_trajectories) + "\n"
-        #summary += "\n"
+        summary += "\n"
         #summary += self.printEntry("Ignored Tracker Objects with Associated Ignored Ground Truth Objects", self.n_igttr) + "\n"
+        for stat in self.other_stats:
+            old_stat=self.other_stats[stat]
+            new_stat={}
+            for s in old_stat:
+                if(old_stat[s]==0 or old_stat[s]=="" or old_stat[s]==[]): continue
+                new_stat[self.sequence_name[s]]=old_stat[s]
+                
+            summary += f"{stat}: {new_stat}\n"
+        summary += "\n"    
         summary += "="*80
         
         return summary
@@ -1010,7 +1052,8 @@ class trackingEvaluation(object):
 
         summary += '{:.4f} {:.4f} {:.4f} {:.4f} {:.4f} {:5d} {:5d} {:.4f} {:.4f} {:.4f} {:.4f} {:5d} {:5d} {:5d}\n'.format( \
             self.sMOTA, self.MOTA, self.MOTP, self.MT, self.ML, self.id_switches, self.fragments, \
-            self.F1, self.precision, self.recall, self.FAR, self.tp, self.fp, self.fn) 
+            self.F1, self.precision, self.recall, self.FAR, self.tp, self.fp, self.fn)
+         
         summary += "="*80
         
         return summary
@@ -1220,8 +1263,11 @@ def evaluate(result_sha,mail,num_hypo,eval_3diou,eval_2diou,thres,gt_path,t_path
         dump = open(filename, "w+")
         stat_meter = stat(t_sha=result_sha, cls=c, suffix=suffix, dump=dump)
         evalmsg=f"Evaluate Class {c} @IoU {thres}"
+        seqmsg=f"On sequence {e.sequence_name}"
         print(evalmsg,file=dump)
+        print(seqmsg,file=dump)
         mail.msg(evalmsg)
+        mail.msg(seqmsg)        
         e.compute3rdPartyMetrics()
         e.saveToStats(dump)
         if(average):

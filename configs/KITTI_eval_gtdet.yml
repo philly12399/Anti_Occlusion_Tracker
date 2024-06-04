@@ -32,5 +32,6 @@ NDT_cache_name               : "cache-128" #path for load/write
 seq_eval                     : [0,1,2,4,5,10,11,13,15,16] #sequence to track, [] means by default
 #---------------AB3DMOT base
 use_default                  : False
-base_param                   : {'algm': 'hungar', 'metric': 'giou_3d', 'thres': -0.2, 'min_hits': 1, 'max_age': 20}
+base_param                   : {'car':{'algm': 'hungar', 'metric': 'giou_3d', 'thres': -0.2, 'min_hits': 1, 'max_age': 20},
+                                'cyclist':{'algm': 'hungar', 'metric': 'dist_3d', 'thres': 4, 'min_hits': 1, 'max_age': 10}}         
 

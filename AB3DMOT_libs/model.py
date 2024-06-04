@@ -44,11 +44,12 @@ class AB3DMOT(object):
         self.affi_process = cfg.affi_pro	# post-processing affinity
         if(cfg.use_default):
             print('Use default param')
-            self.get_param(cfg, cat)
-            
+            self.get_param(cfg, cat)            
         else:
-            print('Use config file param')            
-            self.get_param(cfg, cat, cfg.base_param)
+            print('Use config file param')
+            assert cat.lower() in cfg.base_param, f"no param of class {cat.lower()}"
+            param=cfg.base_param[cat.lower()]            
+            self.get_param(cfg, cat, param)
             
         self.print_param()
   
