@@ -61,6 +61,7 @@ class AB3DMOT(object):
         Box3D.set_label_format(self.label_format)
         ##NDT
         self.NDT_flag = cfg.NDT_flag
+        self.NDT_cfg = None
         if(self.NDT_flag):
             self.NDT_cfg  = cfg.NDT_cfg
             self.NDT_cache_path = os.path.join(cfg.NDT_cache_root,cfg.NDT_cache_name,seq_name)                    
@@ -349,12 +350,12 @@ class AB3DMOT(object):
         new_id_list = list()					# new ID generated for unmatched detections
         for i in unmatched_dets:        			# a scalar of index
             bbox3d = Box3D.bbox2array(dets[i])
-            trk = TrackBuffer(info[i, :], self.ID_count[0], bbox3d, voxels[i], pcd[i], frame, self.buffer_size)
+            trk = TrackBuffer(info[i, :], self.ID_count[0], bbox3d, voxels[i], pcd[i], frame, NDT_cfg = self.NDT_cfg)
             self.track_buf.append(trk)
             new_id_list.append(trk.id)
             # print('track ID %s has been initialized due to new detection' % trk.id)
             self.ID_count[0] += 1
-
+        # print(new_id_list)  
         return new_id_list
 
     def output(self, frame): #death
@@ -374,11 +375,14 @@ class AB3DMOT(object):
             #     print(d[3:])
             npdet = np.concatenate((d, [trk.id], trk.info, [frame])).reshape(1, -1)
             trk.output_buf.append(npdet)
+            trk.output_buf_time.append(frame)
             if ((trk.time_since_update < self.max_age) and (trk.hits >= self.min_hits or self.frame_count <= self.min_hits)):      
                 if(trk.match == True): ## match才輸出
                     for o in trk.output_buf:
                         results.append(o)
                     trk.output_buf = []
+                    trk.output_buf_time=[]
+                    
             num_trks -= 1
 
             # deadth, remove dead tracklet
@@ -485,18 +489,24 @@ class AB3DMOT(object):
         # process detection format
 
         dets = self.process_dets(dets)
-        if(self.oxts is not None):
-            dets = self.move_dets_origin_axis(frame, dets)
         
+        if(self.oxts is not None):
+            old_dets = dets
+            dets = self.move_dets_origin_axis(frame, dets)
+        else:
+            old_dets = dets
+            
         # tracks propagation based on velocity
         trks = self.prediction(frame, history = self.history)
         old_trks = trks
 
         if(self.NDT_flag):
-            NDT_Voxels = []            
+            NDT_Voxels = []  
+            NDT_Voxels_PATH = []          
             frame_str = str(frame).zfill(6)
             for i in range(len(pcd)):
                 cache_name=f"{frame_str}_{str(det_idx[i]).zfill(4)}_{self.cat.lower()}.pkl"
+                NDT_Voxels_PATH.append(cache_name)
                 NDTV = read_pkl(os.path.join(self.NDT_cache_path, cache_name))
                 NDT_Voxels.append(NDTV)
                 # if(NDTV!=None):
@@ -504,11 +514,11 @@ class AB3DMOT(object):
                 #     draw_NDT_voxel(NDTV,random=False)        
         else:
             NDT_Voxels = [[] for i in range(len(dets))]   
-        
+            NDT_Voxels_PATH = [[] for i in range(len(dets))]
         # matching
 
         # matched, unmatched_dets, unmatched_trks, cost, affi = data_association(dets, trks, self.metric, self.thres, self.algm)
-        matched, unmatched_dets, unmatched_trks, cost, affi = data_association_philly(dets, trks, NDT_Voxels, self.track_buf, self.metric, self.thres, self.algm, history = self.history, NDT_flag=self.NDT_flag)
+        matched, unmatched_dets, unmatched_trks, cost, affi = data_association_philly(dets, trks, NDT_Voxels, self.track_buf, self.metric, self.thres, self.algm, history = self.history, NDT_flag=self.NDT_flag, vpath=NDT_Voxels_PATH,olddet=old_dets)
         
             
           # print_log('detections are', log=self.log, display=False)

@@ -2,7 +2,7 @@ import numpy as np
 from numba import jit
 from scipy.optimize import linear_sum_assignment
 from AB3DMOT_libs.dist_metrics import iou, dist3d, dist_ground, m_distance
-from Philly_libs.NDT import NDT_score
+from Philly_libs.NDT import NDT_score,draw_NDT_voxel
 INVALID_VALUE=1e10
 def compute_bbox_affinity(dets, trks, metric): #BIGGER BETTER
     # compute affinity matrix
@@ -103,7 +103,7 @@ def optimize_matching(matrix, algm='greedy'): #find min
     for m1,m2 in matched_indices:
         cost += matrix[m1][m2]
     return matched_indices, cost
-def data_association(dets, trks, NDT_Voxels, trk_buf, metric, threshold, algm='greedy', history = 5, NDT_flag=False):   
+def data_association(dets, trks, NDT_Voxels, trk_buf, metric, threshold, algm='greedy', history = 5, NDT_flag=False,vpath=None,olddet=None):   
     """
     Assigns detections to tracked object
 
@@ -121,9 +121,9 @@ def data_association(dets, trks, NDT_Voxels, trk_buf, metric, threshold, algm='g
         return np.empty((0, 2), dtype=int), [], np.arange(len(trks)), 0, aff_matrix		
     #  pred bbox x past time(-1,-2...) -> past time(-1,-2...) x pred bbox
     trks_T = [[row[j] for row in trks] for j in range(len(trks[0]))]
+    
     # compute affinity matrix of past time 
     aff_matrix_history = [compute_bbox_affinity(dets, trks_T[h], metric) for h in range(history)]
-    # print(np.array(aff_matrix_history).shape)
     max_mat = np.max(np.array(aff_matrix_history), axis = 0)
     #weight setting
     # WEIGHT = [1,1,1,1,1]
@@ -131,9 +131,9 @@ def data_association(dets, trks, NDT_Voxels, trk_buf, metric, threshold, algm='g
     #     WEIGHT.append(0)    
     # aff_matrix_mul = multiframe_bbox_affinity(aff_matrix_history, history, WEIGHT)
     # aff_matrix = aff_matrix_mul
-    aff_matrix = max_mat
-    # aff_matrix = aff_matrix_history[0]
     
+    # aff_matrix = max_mat
+    aff_matrix = aff_matrix_history[0]
     ## association based on the affinity matrix
     matched_indices, cost_bbox = optimize_matching(-aff_matrix, algm)
     # save for unmatched objects
@@ -156,21 +156,41 @@ def data_association(dets, trks, NDT_Voxels, trk_buf, metric, threshold, algm='g
     
     unmatched_dets = sorted(unmatched_dets)
     unmatched_trks = sorted(unmatched_trks)
-                # NDTV = read_pkl(os.path.join(self.NDT_cache_path, cache_name))
-    if(NDT_flag):
-        NDT_det = [NDT_Voxels[i] for i in unmatched_dets]
-        # if(len(NDT_det)):
-        #     for NN in NDT_det:
-        #         if(NN!=None):                    
+    
+    
+    if(NDT_flag): #if use NDT
+        ## First collect unmatched det NDT, exclude None
+        unmatched_det_NDT = [NDT_Voxels[i] for i in unmatched_dets]
+        valid_det_NDT = [[],[]] # for original id and data
+        for i,v in enumerate(unmatched_det_NDT):
+            if v!=None:
+                valid_det_NDT[0].append(unmatched_dets[i])
+                valid_det_NDT[1].append(v)
+                
+        ## Then collect unmatched trk 
+        unmatched_trkbuf = [trk_buf[j] for j in unmatched_trks]
+        valid_trkbuf = [[],[]] # for original id and data
+        ## if we have "valid det" and "unmatched trk"
+        if(len(valid_det_NDT[0])>0 and len(unmatched_trkbuf)>0):   
+            ## Do trk.update_NDT 
+            for i,t in enumerate(unmatched_trkbuf):
+                t.update_NDT()
+                ## if NDT update success, add to valid_trkbuf
+                if t.NDT_updated==True:
+                    valid_trkbuf[0].append(unmatched_trks[i])
+                    valid_trkbuf[1].append(t)
+
+            #if we have "valid trkbuf"
+            if(len(valid_trkbuf[0])>0):
+                pcd_affinity_matrix = compute_pcd_affinity(valid_det_NDT[1], valid_trkbuf[1])
+                det1 = [dets[i] for i in valid_det_NDT[0]]
+                ##FIXED HISTORY = 1, so i use trksT [0]
+                trks1 = [trks_T[0][j] for j in valid_trkbuf[0]] 
+                dist = compute_bbox_affinity(det1, trks1, "dist_2d") 
+                print(pcd_affinity_matrix)  
+                print(dist)   
+                pdb.set_trace()               
     else:
         NDT_det = None
-    # unmatched_NDT = [NDT_voxels[i] for i in unmatched_dets]
-    # unmatched_trkbuf = [trk_buf[j] for j in unmatched_trks]
-    # pcd_affinity_matrix = compute_pcd_affinity(unmatched_NDT, unmatched_trkbuf) 
-    # pcd_matched_indices, pcd_cost = optimize_matching(pcd_affinity_matrix, 'hungar')
-    
-    # pcd_affinity_matrix = compute_pcd_affinity(NDT_voxels, trk_buf) 
-    # pcd_matched_indices, pcd_cost = optimize_matching(pcd_affinity_matrix, 'hungar')
-
     
     return matches, np.array(unmatched_dets), np.array(unmatched_trks), cost_bbox, aff_matrix

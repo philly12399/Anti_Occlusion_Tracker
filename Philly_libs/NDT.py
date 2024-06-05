@@ -145,7 +145,8 @@ def NDT_voxelize(pcd, det, cfg=None): # 只用到det lwh
     voxel_size, overlap, min_pts_voxel, noise = 0.5, True, 5, 0.05
     if(cfg is not None):
         voxel_size, overlap, min_pts_voxel, noise = cfg['voxel_size'], cfg['overlap'], cfg['min_pts_voxel'], cfg['noise']
-    # move to orign  
+    # move to orign 
+     
     box = NDT_Voxel(0,0,0,det.l,det.w,det.h)
     pcd = [p for p in pcd if in_bbox(p,box)]
     origin = 0 #第一個voxel的中心在原點
@@ -217,6 +218,7 @@ def NDT_voxelize(pcd, det, cfg=None): # 只用到det lwh
 
 
 def NDT_score(a, b, mixed_pdf=True): #-sum(pdf)
+    
     a_array = np.array([(va.x, va.y, va.z) for va in a])
     b_array = np.array([(vb.x, vb.y, vb.z) for vb in b])
     pairs = []
