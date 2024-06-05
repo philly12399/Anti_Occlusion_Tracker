@@ -223,23 +223,7 @@ class AB3DMOT(object):
                 self.track_buf[index].kf.x[:3] = copy.copy(compensated).reshape((-1, 1))
 
         return trks
-        
-    def ego_motion_compensation_test(self, frame, dets):
-        # inverse ego motion compensation, move trks from the last frame of coordinate to the current frame for matching
-        from AB3DMOT_libs.kitti_oxts import get_ego_traj, egomotion_compensation_ID
-        
-        i,j,k=8,79,3
-        o=[self.oxts[i],self.oxts[j],self.oxts[k]] #T_C->O,T_B->O,T_A->O
-        oi=[inverse_transform(o[0]),inverse_transform(o[1]),inverse_transform(o[2])] #T_O->C,T_O->B,T_O->A
-        
-        T_A_C = np.matmul(oi[0],o[2])  #T_A->C  = T_O->C * T_A->O =  (T_C->O)inv * T_A->O 
-        # print(T_A_C)
-        
-        T_A_B = np.matmul(oi[1],o[2])
-        T_B_C = np.matmul(oi[0],o[1])  
-        T_A_C2=np.matmul(T_B_C,T_A_B) #T_A->C  =  T_B->C * T_A->B 
-        assert (np.allclose(T_A_C,T_A_C2))
-        # pdb.set_trace()   
+           
     
     def visualization(self, img, dets, trks, calib, hw, save_path, height_threshold=0):
         # visualize to verify if the ego motion compensation is done correctly
@@ -524,7 +508,7 @@ class AB3DMOT(object):
         # matching
 
         # matched, unmatched_dets, unmatched_trks, cost, affi = data_association(dets, trks, self.metric, self.thres, self.algm)
-        matched, unmatched_dets, unmatched_trks, cost, affi = data_association_philly(dets, trks, NDT_Voxels, self.track_buf, self.metric, self.thres, self.algm, history = self.history)
+        matched, unmatched_dets, unmatched_trks, cost, affi = data_association_philly(dets, trks, NDT_Voxels, self.track_buf, self.metric, self.thres, self.algm, history = self.history, NDT_flag=self.NDT_flag)
         
             
           # print_log('detections are', log=self.log, display=False)

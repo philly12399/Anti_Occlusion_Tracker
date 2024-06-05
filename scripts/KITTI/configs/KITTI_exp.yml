@@ -3,18 +3,18 @@
 description                  : KITTI
 # ------------------- Path Options -------------------------
 gt_path                      : "/home/philly12399/thesis/AB3DMOT/scripts/KITTI/label/" 
-trk_path                     : "/home/philly12399/thesis/AB3DMOT/tracker_exp_local/KITTI/exp/diff4/label"
-out_path                     : "/home/philly12399/thesis/AB3DMOT/tracker_exp_local/KITTI/exp/diff4/"
+trk_path                     : "/home/philly12399/thesis/AB3DMOT/tracker_exp_local//newexp/label"
+out_path                     : "/home/philly12399/thesis/AB3DMOT/tracker_exp_local//newexp/"
 calib_path                   : "/home/philly12399/philly_data/KITTI_tracking/training/calib/" 
 exp_name                     : eval
 # ------------------- Eval Options -------------------------
 iou                          : 3D
-threshold                    : [0.5]
+threshold                    : [0.25,0.5]
 class_name                   : ['car']
 gt_format                    : KITTI
 trk_format                   : KITTI
 num_hypo                     : 1
 max_occlusion                : 4
 max_truncation               : 2 #0,1,2
-eval_seq                     : [0,1,2,4,5,10,11,13,15,16]
+eval_seq                     : [20] #[1,2,5,7,8,9,11,18,19,20]
 fov_filter                   : False
