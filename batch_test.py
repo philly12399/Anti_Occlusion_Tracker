@@ -36,6 +36,8 @@ import pdb
 )
 def main(det_root, config, output, exp):
     diff_range=[0,1,2,3,4]
+    diff_range=[3,4]
+    
     output_path = os.path.join(output,exp)
     if os.path.exists(output_path):
         os.system(f"rm -r {output_path}")
