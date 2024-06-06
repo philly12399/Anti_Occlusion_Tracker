@@ -265,9 +265,11 @@ class trackingEvaluation(object):
             
             # classes that should be loaded (ignored neighboring classes)
             if "car" in cls.lower():
-                classes = ["car","van","truck"] # van,truck視同car 
+                classes = ["car","van","truck","kf_car"] # van,truck視同car 
             elif "pedestrian" in cls.lower():
                 classes = ["pedestrian","person_sitting"]
+            elif "cyclist" in cls.lower():
+                classes = ["cyclist","kf_cyclist"]
             else:
                 classes = [cls.lower()]
             classes += ["dontcare"]            
@@ -277,8 +279,9 @@ class trackingEvaluation(object):
                 # (frame,tracklet_id,objectType,truncation,occlusion,alpha,x1,y1,x2,y2,h,w,l,X,Y,Z,ry)
                 line = line.strip()
                 fields            = line.split(" ")
-                if not any([s for s in classes if s in fields[2].lower()]):
+                if not any([s for s in classes if s == fields[2].lower()]):
                     continue
+                
                 # get fields from table
                 t_data.frame        = int(float(fields[0]))     # frame
                 t_data.track_id     = int(float(fields[1]))     # id

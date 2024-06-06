@@ -57,17 +57,20 @@ class AB3DMOT(object):
         self.label_coord = cfg.label_coord
         self.buffer_size = cfg.buffer_size            
         self.history = cfg.history
+        self.output_kf_cls = cfg.output_kf_cls
         
         Box3D.set_label_format(self.label_format)
         ##NDT
         self.NDT_flag = cfg.NDT_flag
         self.NDT_cfg = None
+        self.stage2_param = None
         if(self.NDT_flag):
             self.NDT_cfg  = cfg.NDT_cfg
             self.NDT_cache_path = os.path.join(cfg.NDT_cache_root,cfg.NDT_cache_name,seq_name)                    
             if(not os.path.exists(self.NDT_cache_path)):
                 print(f"Load NDT cache failed, {self.NDT_cache_path} not exists")
                 assert False
+            self.stage2_param = cfg.stage2_param[cat.lower()]
                                 
         self.ego_com_list=[]
           # debug
@@ -75,6 +78,7 @@ class AB3DMOT(object):
         self.debug_id = None
         self.debug_id_new=1
         self.debugger=[]
+        
         self.global_cnt=0
         
     def get_param(self, cfg, cat, param=None):
@@ -375,9 +379,14 @@ class AB3DMOT(object):
             d = Box3D.bbox2array_raw(Box3D.array2bbox(det))
             # if(trk.id == self.debug_id_new):
             #     print(d[3:])
-            npdet = np.concatenate((d, [trk.id], trk.info, [frame])).reshape(1, -1)
+            info = copy.deepcopy(trk.info)
+            if(self.output_kf_cls and trk.match == False): 
+                info[1]+=10                
+            npdet = np.concatenate((d, [trk.id], info, [frame])).reshape(1, -1)
+            
             trk.output_buf.append(npdet)
             trk.output_buf_time.append(frame)
+
             if ((trk.time_since_update < self.max_age) and (trk.hits >= self.min_hits or self.frame_count <= self.min_hits)):      
                 if(trk.match == True): ## match才輸出
                     for o in trk.output_buf:
@@ -520,7 +529,7 @@ class AB3DMOT(object):
         # matching
 
         # matched, unmatched_dets, unmatched_trks, cost, affi = data_association(dets, trks, self.metric, self.thres, self.algm)
-        matched, unmatched_dets, unmatched_trks, cost, affi, stage2_stat = data_association_philly(dets, trks, NDT_Voxels, self.track_buf, self.metric, self.thres, self.algm, history = self.history, NDT_flag=self.NDT_flag)
+        matched, unmatched_dets, unmatched_trks, cost, affi, stage2_stat = data_association_philly(dets, trks, NDT_Voxels, self.track_buf, self.metric, self.thres, self.algm, history = self.history, NDT_flag=self.NDT_flag, stage2_param = self.stage2_param)
             
         # print_log('detections are', log=self.log, display=False)
         # print_log(dets, log=self.log, display=False)
@@ -565,5 +574,6 @@ class AB3DMOT(object):
             print_log(f"NDT aff: {stage2_stat['aff']}", log=self.log, display=False)
             print_log(f"Dist: {stage2_stat['dist']}", log=self.log, display=False)            
             print_log(f"Pair: {stage2_stat['pair']}", log=self.log, display=False)
-
+            if(len(stage2_stat['pair'])>0):
+                print_log(f"Revive success.", log=self.log, display=False)
         return results, affi

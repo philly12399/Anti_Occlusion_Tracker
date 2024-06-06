@@ -27,7 +27,7 @@ def get_subfolder_seq(dataset, split):
     # dataset setting
     file_path = os.path.dirname(os.path.realpath(__file__))
     if dataset == 'KITTI':				# KITTI
-        det_id2str = {1: 'Pedestrian', 2: 'Car', 3: 'Cyclist'}
+        det_id2str = {1: 'Pedestrian', 2: 'Car', 3: 'Cyclist' , 12:"KF_Car", 13:"KF_Cyclist"}
         
         if split == 'val': subfolder = 'training' 
         elif split == 'test': subfolder = 'testing' 
@@ -54,7 +54,7 @@ def get_subfolder_seq(dataset, split):
 
         data_root = os.path.join(file_path, '../data/nuScenes/nuKITTI') 	# path containing the nuScenes-converted KITTI root
     elif dataset == 'Wayside':				# KITTI
-        det_id2str = { 1: 'Car', 2: 'Cyclist', 3: 'Car'}
+        det_id2str = { 1: 'Car', 2: 'Cyclist', 3: 'Car', 11:"KF_Car", 12:"KF_Cyclist"}
         hw = {'image': (375, 1242), 'lidar': (720, 1920)}
         subfolder = 'val'
         seq_eval = ['0004']
