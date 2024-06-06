@@ -75,6 +75,8 @@ class AB3DMOT(object):
         self.debug_id = None
         self.debug_id_new=1
         self.debugger=[]
+        self.global_cnt=0
+        
     def get_param(self, cfg, cat, param=None):
         # get parameters for each dataset
         if(param !=None):
@@ -518,10 +520,9 @@ class AB3DMOT(object):
         # matching
 
         # matched, unmatched_dets, unmatched_trks, cost, affi = data_association(dets, trks, self.metric, self.thres, self.algm)
-        matched, unmatched_dets, unmatched_trks, cost, affi = data_association_philly(dets, trks, NDT_Voxels, self.track_buf, self.metric, self.thres, self.algm, history = self.history, NDT_flag=self.NDT_flag, vpath=NDT_Voxels_PATH,olddet=old_dets)
-        
+        matched, unmatched_dets, unmatched_trks, cost, affi, stage2_stat = data_association_philly(dets, trks, NDT_Voxels, self.track_buf, self.metric, self.thres, self.algm, history = self.history, NDT_flag=self.NDT_flag)
             
-          # print_log('detections are', log=self.log, display=False)
+        # print_log('detections are', log=self.log, display=False)
         # print_log(dets, log=self.log, display=False)
         # print_log('tracklets are', log=self.log, display=False)
         # print_log(trks, log=self.log, display=False)
@@ -549,12 +550,20 @@ class AB3DMOT(object):
             # print_log(affi, log=self.log, display=False)
 
         # logging
-        print_log('\ntop-1 cost selected', log=self.log, display=False)
-        print_log(cost, log=self.log, display=False)
-        for result_index in range(len(results)):
-            print_log(results[result_index][:, :8], log=self.log, display=False)
-            print_log('', log=self.log, display=False)
-        # print(f"MT_NDT_Voxelize_timetime:{TT1-TT0}, with len {len(MT_pcd)}; DA_time:{TT3-TT1};")
-        # print(f"LOAD_NDT_TIME:{TT1-TT2}")
-        # print(f"DET_NDT_Voxelize_time:{TT1-TT0}; Track_NDT_Voxelize_time:{TT2-TT1};DA_time:{TT3-TT2};")
+        # print_log('\ntop-1 cost selected', log=self.log, display=False)
+        # print_log(cost, log=self.log, display=False)
+        
+        # for result_index in range(len(results)):
+            # print_log(results[result_index][:, :8], log=self.log, display=False)
+            # print_log('', log=self.log, display=False)
+            
+        if('aff' in stage2_stat):
+            self.global_cnt +=len(stage2_stat['pair'])
+            print_log(f"Stage2 activate.", log=self.log, display=False)
+            print_log(f"Det: {stage2_stat['NDT_det_index']}", log=self.log, display=False)
+            print_log(f"Trk: {stage2_stat['NDT_trk_index']}", log=self.log, display=False)
+            print_log(f"NDT aff: {stage2_stat['aff']}", log=self.log, display=False)
+            print_log(f"Dist: {stage2_stat['dist']}", log=self.log, display=False)            
+            print_log(f"Pair: {stage2_stat['pair']}", log=self.log, display=False)
+
         return results, affi

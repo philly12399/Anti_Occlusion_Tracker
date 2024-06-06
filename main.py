@@ -65,7 +65,7 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num_to_trk):
     # loop every sequence
     seq_count = 0
     total_time, total_frames = 0.0, 0
-    
+    ndt_global_cnt=[]
     for seq_name in seq_eval:
         
         seq_file = os.path.join(det_root, seq_name+'.txt')
@@ -148,12 +148,14 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num_to_trk):
                 save_trk_file.close()
 
             total_frames += 1
+        ndt_global_cnt.append(tracker.global_cnt)
         seq_count += 1
 
         for index in range(cfg.num_hypo):
             eval_file_dict[index].close()
             ID_start = max(ID_start, tracker.ID_count[index])
     try:
+        print_log(f"NDT pair count:{ndt_global_cnt}", log=log)
         print_log('%s, %25s: %4.f seconds for %5d frames or %6.1f FPS, metric is %s = %.2f' % \
             (cfg.dataset, result_sha, total_time, total_frames, total_frames / total_time, \
             tracker.metric, tracker.thres), log=log)
