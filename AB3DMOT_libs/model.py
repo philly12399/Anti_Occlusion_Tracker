@@ -42,7 +42,7 @@ class AB3DMOT(object):
         self.ego_com = cfg.ego_com 			# ego motion compensation
         self.calib = calib
         self.oxts = oxts
-        self.affi_process = cfg.affi_pro	# post-processing affinity
+
         if(cfg.use_default):
             print('Use default param')
             self.get_param(cfg, cat)            
@@ -75,7 +75,6 @@ class AB3DMOT(object):
                 assert False
             self.stage2_param = cfg.stage2_param[cat.lower()]
                                 
-        self.ego_com_list=[]
           # debug
         # self.debug_id = 2
         self.debug_id = None
@@ -210,62 +209,8 @@ class AB3DMOT(object):
             if theta_obs > 0: theta_pre += np.pi * 2
             else: theta_pre -= np.pi * 2
 
-        return theta_pre, theta_obs
-
-    def ego_motion_compensation(self, frame, trks):
-        # inverse ego motion compensation, move trks from the last frame of coordinate to the current frame for matching
-        from AB3DMOT_libs.kitti_oxts import get_ego_traj, egomotion_compensation_ID
-        assert len(self.track_buf) == len(trks), 'error'
-        ego_xyz_imu, ego_rot_imu, left, right = get_ego_traj(self.oxts, frame, 1, 1, only_fut=True, inverse=True) 
-        self.ego_com_list.append([ego_xyz_imu, ego_rot_imu, left, right])       
-        
-        for index in range(len(self.track_buf)):
-           
-            ego_xyz_imu, ego_rot_imu, left, right = self.ego_com_list[-1]
-            trk_tmp = trks[index][0]
-            xyz = np.array([trk_tmp.x, trk_tmp.y, trk_tmp.z]).reshape((1, -1))
-            compensated = egomotion_compensation_ID(xyz, self.calib, ego_rot_imu, ego_xyz_imu, left, right)
-            trk_tmp.x, trk_tmp.y, trk_tmp.z = compensated[0]
-            # update compensated state in the Kalman filter
-            try:
-                self.track_buf[index].kf.x[:3] = copy.copy(compensated).reshape((-1))
-            except:
-                self.track_buf[index].kf.x[:3] = copy.copy(compensated).reshape((-1, 1))
-
-        return trks
-           
+        return theta_pre, theta_obs        
     
-    def visualization(self, img, dets, trks, calib, hw, save_path, height_threshold=0):
-        # visualize to verify if the ego motion compensation is done correctly
-        # ideally, the ego-motion compensated tracks should overlap closely with detections
-        import cv2 
-        from PIL import Image
-        from AB3DMOT_libs.vis import draw_box3d_image
-        from xinshuo_visualization import random_colors
-
-        dets, trks = copy.copy(dets), copy.copy(trks)
-        img = np.array(Image.open(img))
-        max_color = 20
-        colors = random_colors(max_color)       # Generate random colors
-
-        # visualize all detections as yellow boxes
-        for det_tmp in dets: 
-            img = vis_obj(det_tmp, img, calib, hw, (255, 255, 0))				# yellow for detection
-        
-        # visualize color-specific tracks
-        count = 0
-        ID_list = [tmp.id for tmp in self.track_buf]
-        for trk_tmp in trks: 
-            ID_tmp = ID_list[count]
-            color_float = colors[int(ID_tmp) % max_color]
-            color_int = tuple([int(tmp * 255) for tmp in color_float])
-            str_vis = '%d, %f' % (ID_tmp, trk_tmp.o)
-            img = vis_obj(trk_tmp, img, calib, hw, color_int, str_vis)		# blue for tracklets
-            count += 1
-        
-        img = Image.fromarray(img)
-        img = img.resize((hw['image'][1], hw['image'][0]))
-        img.save(save_path)
 
     def prediction(self, frame, history = 5):
         # get predicted locations from existing tracks
@@ -324,15 +269,6 @@ class AB3DMOT(object):
                 bbox3d = Box3D.bbox2array(dets[d[0]])
                 trk.kf.x[3], bbox3d[3] = self.orientation_correction(trk.kf.x[3], bbox3d[3])                
                     
-                if trk.id == self.debug_id:
-                    print('After ego-compoensation')
-                    print(trk.kf.x.reshape((-1)))
-                    print('matched measurement')
-                    print(bbox3d.reshape((-1)))
-                    # print('uncertainty')
-                    # print(trk.kf.P)
-                    # print('measurement noise')
-                    # print(trk.kf.R)
 
                 # kalman filter update with observation
                 trk.kf.update(bbox3d)
@@ -436,77 +372,6 @@ class AB3DMOT(object):
             if (trk.time_since_update >= self.max_age): 
                 self.track_buf.pop(num_trks)
         return results
-    def process_affi(self, affi, matched, unmatched_dets, new_id_list):
-
-        # post-processing affinity matrix, convert from affinity between raw detection and past total tracklets
-        # to affinity between past "active" tracklets and current active output tracklets, so that we can know 
-        # how certain the results of matching is. The approach is to find the correspondes of ID for each row and
-        # each column, map to the actual ID in the output trks, then purmute/expand the original affinity matrix
-        
-        ###### determine the ID for each past track
-        trk_id = self.id_past 			# ID in the trks for matching
-
-        ###### determine the ID for each current detection
-        det_id = [-1 for _ in range(affi.shape[0])]		# initialization
-
-        # assign ID to each detection if it is matched to a track
-        for match_tmp in matched:		
-            det_id[match_tmp[0]] = trk_id[match_tmp[1]]
-
-        # assign the new birth ID to each unmatched detection
-        count = 0
-        assert len(unmatched_dets) == len(new_id_list), 'error'
-        for unmatch_tmp in unmatched_dets:
-            det_id[unmatch_tmp] = new_id_list[count] 	# new_id_list is in the same order as unmatched_dets
-            count += 1
-        assert not (-1 in det_id), 'error, still have invalid ID in the detection list'
-
-        ############################ update the affinity matrix based on the ID matching
-        
-        # transpose so that now row is past trks, col is current dets	
-        affi = affi.transpose() 			
-
-        ###### compute the permutation for rows (past tracklets), possible to delete but not add new rows
-        permute_row = list()
-        for output_id_tmp in self.id_past_output:
-            index = trk_id.index(output_id_tmp)
-            permute_row.append(index)
-        affi = affi[permute_row, :]	
-        assert affi.shape[0] == len(self.id_past_output), 'error'
-
-        ###### compute the permutation for columns (current tracklets), possible to delete and add new rows
-        # addition can be because some tracklets propagated from previous frames with no detection matched
-        # so they are not contained in the original detection columns of affinity matrix, deletion can happen
-        # because some detections are not matched
-
-        max_index = affi.shape[1]
-        permute_col = list()
-        to_fill_col, to_fill_id = list(), list() 		# append new columns at the end, also remember the ID for the added ones
-        for output_id_tmp in self.id_now_output:
-            try:
-                index = det_id.index(output_id_tmp)
-            except:		# some output ID does not exist in the detections but rather predicted by KF
-                index = max_index
-                max_index += 1
-                to_fill_col.append(index); to_fill_id.append(output_id_tmp)
-            permute_col.append(index)
-
-        # expand the affinity matrix with newly added columns
-        append = np.zeros((affi.shape[0], max_index - affi.shape[1]))
-        append.fill(self.min_sim)
-        affi = np.concatenate([affi, append], axis=1)
-
-        # find out the correct permutation for the newly added columns of ID
-        for count in range(len(to_fill_col)):
-            fill_col = to_fill_col[count]
-            fill_id = to_fill_id[count]
-            row_index = self.id_past_output.index(fill_id)
-
-            # construct one hot vector because it is proapgated from previous tracks, so 100% matching
-            affi[row_index, fill_col] = self.max_sim		
-        affi = affi[:, permute_col]
-
-        return affi
 
     def track(self, dets_all, frame, seq_name, pcd, det_idx):
         
@@ -536,7 +401,7 @@ class AB3DMOT(object):
 
         dets = self.process_dets(dets)
         
-        if(self.oxts is not None):
+        if(self.ego_com and self.oxts is not None):
             old_dets = dets
             dets = self.move_dets_origin_axis(frame, dets)
         else:
