@@ -26,6 +26,7 @@ def parse_args():
 def main_per_cat(cfg, cat, log, ID_start, frame_num_to_trk):
     # get data-cat-split specific path
     # print(cfg)
+    
     np.random.seed(0)
     all_sha = '%s_%s_%s' % (cfg.det_name, 'all', cfg.split)
     result_sha = '%s_%s_%s' % (cfg.det_name, cat, cfg.split)
@@ -193,7 +194,8 @@ def main(args):
     # run tracking for each category
     #cat to capitalize
     cfg.cat_list = [cat.capitalize() for cat in cfg.cat_list]
-
+    cfg.num_hypo = 1
+    cfg.score_threshold = -10000
     for cat in cfg.cat_list:
         ID_start = main_per_cat(cfg, cat, log, ID_start, args.frame)
     # combine results for every category

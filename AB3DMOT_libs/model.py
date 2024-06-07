@@ -27,7 +27,6 @@ class AB3DMOT(object):
         # vis and log purposes
         self.img_dir = img_dir
         self.vis_dir = vis_dir
-        self.vis = cfg.vis
         self.hw = hw
         self.log = log
 
