@@ -23,6 +23,7 @@ label_coord                  : camera       # lidar or camera
 buffer_size                  : 30
 history                      : 1
 output_kf_cls                : True ## if true output kf car as KF_Car class
+output_mode                 : 'kf' ## output by interpolate or kf predict
 # ------------------NDT
 NDT_flag                     : False
 pcd_db_root                  : "./data/KITTI/dense_db/dense_128_all/"

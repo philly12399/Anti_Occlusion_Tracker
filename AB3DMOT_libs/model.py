@@ -11,6 +11,7 @@ from Philly_libs.TrackBuffer import TrackBuffer , KF_predict
 from Philly_libs.NDT import draw_NDT_voxel
 from Philly_libs.philly_io import read_pkl
 from Philly_libs.kitti_utils import *
+from Philly_libs.philly_utils import interpolate_bbox
 from xinshuo_miscellaneous import print_log
 from xinshuo_io import mkdir_if_missing
 import time
@@ -57,8 +58,10 @@ class AB3DMOT(object):
         self.label_coord = cfg.label_coord
         self.buffer_size = cfg.buffer_size            
         self.history = cfg.history
-        self.output_kf_cls = cfg.output_kf_cls
         
+        self.output_kf_cls = cfg.output_kf_cls
+        self.output_mode =  cfg.output_mode.lower()
+        assert self.output_mode == 'kf' or self.output_mode == 'interpolate'
         Box3D.set_label_format(self.label_format)
         ##NDT
         self.NDT_flag = cfg.NDT_flag
@@ -377,8 +380,7 @@ class AB3DMOT(object):
                 det = trk.bbox[-1]
             det[0],det[1],det[2],det[3] = move_to_frame_axis(self.oxts, self.calib, self.label_coord, frame, det[:4])
             d = Box3D.bbox2array_raw(Box3D.array2bbox(det))
-            # if(trk.id == self.debug_id_new):
-            #     print(d[3:])
+
             info = copy.deepcopy(trk.info)
             if(self.output_kf_cls and trk.match == False): 
                 info[1]+=10                
@@ -393,14 +395,47 @@ class AB3DMOT(object):
                         results.append(o)
                     trk.output_buf = []
                     trk.output_buf_time=[]
-                    
+    
             num_trks -= 1
 
             # deadth, remove dead tracklet
             if (trk.time_since_update >= self.max_age): 
                 self.track_buf.pop(num_trks)
         return results
+    
+    def output_interpolate(self, frame): #death
+        # output exiting tracks that have been stably associated, i.e., >= min_hits
+        # and also delete tracks that have appeared for a long time, i.e., >= max_age
+        num_trks = len(self.track_buf)
+        results = []
+        for trk in reversed(self.track_buf):
+            # change format from [x,y,z,theta,l,w,h] to [h,w,l,x,y,z,theta]
+            if(trk.match == False): #unmatch就用kf的
+                det = trk.kf.x[:7].reshape((7, ))
+            else:#match 就用det
+                det = trk.bbox[-1]
+            det[0],det[1],det[2],det[3] = move_to_frame_axis(self.oxts, self.calib, self.label_coord, frame, det[:4])
+            d = Box3D.bbox2array_raw(Box3D.array2bbox(det))
+            
+            if(trk.match):
+                trk.output_buf.append(d)
+                trk.output_buf_time.append(frame)
+     
+            npdet = np.concatenate((d, [trk.id], trk.info, [frame])).reshape(1, -1)
 
+            if ((trk.time_since_update < self.max_age) and (trk.hits >= self.min_hits or self.frame_count <= self.min_hits)):
+                if(trk.match):
+                    if(len(trk.output_buf) == 1):
+                        results.append(npdet)
+                        
+                    else: #interpolate
+                        output = interpolate_bbox(trk.output_buf[-2], trk.output_buf[-1], trk.output_buf_time[-2], trk.output_buf_time[-1], trk.id, copy.deepcopy(trk.info), self.output_kf_cls)
+                        results.extend(output)
+            num_trks -= 1
+            # deadth, remove dead tracklet
+            if (trk.time_since_update >= self.max_age): 
+                self.track_buf.pop(num_trks)
+        return results
     def process_affi(self, affi, matched, unmatched_dets, new_id_list):
 
         # post-processing affinity matrix, convert from affinity between raw detection and past total tracklets
@@ -544,9 +579,12 @@ class AB3DMOT(object):
         self.update(matched, unmatched_trks, dets, info, NDT_Voxels, pcd, frame)
         # create and initialise new trackers for unmatched detections
         new_id_list = self.birth(dets, info, unmatched_dets, NDT_Voxels, pcd, frame)
-
         # output existing valid tracks
-        results = self.output(frame)
+
+        if(self.output_mode=='kf'):
+            results = self.output(frame)
+        elif (self.output_mode=='interpolate'):
+            results = self.output_interpolate(frame)
         # assert(len(results)== len(pcd))
         if len(results) > 0: results = [np.concatenate(results)]		# h,w,l,x,y,z,theta, ID, other info, confidence
         else:            	 results = [np.empty((0, 16))]

@@ -20,6 +20,8 @@ class TrackBuffer():
         self.status = []
         self.output_buf = []
         self.output_buf_time = []
+        
+        
         self.pcd_of_track = None
         self.NDT_of_track = None
         self.NDT_updated = False

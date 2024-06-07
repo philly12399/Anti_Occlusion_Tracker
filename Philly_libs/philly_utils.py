@@ -2,6 +2,7 @@ import os
 import open3d as o3d
 from  Philly_libs.philly_io import *
 import pdb
+import copy
 #frame_det_idx 是detection中符合cat的那些obj在diff0(gt)的det idx,因為我是用diff0去create gtdb
 def pcd_info_seq_preprocess(pcd_info, pcd_db_seq_root, frame_num, frame_det_idx): 
     pcd_info_seq=[[] for i in range(frame_num)]
@@ -86,3 +87,30 @@ def random_drop(arr,r):
 #         p = o3d.geometry.PointCloud()
 #         p.points = o3d.utility.Vector3dVector(box["pts"])
 #         vis.add_geometry(p)
+
+def interpolate_bbox(box1,box2,start,end,id,info, output_kf_cls):
+    num=end-start+1
+    output = []
+    if(num<2): assert False
+    
+    info_kf = copy.deepcopy(info)
+    info_kf[1]+=10
+    
+    size=(box2[:3]+box1[:3])/2
+    frame=list(range(start,end+1))
+    boxes = interpolate(box1[3:],box2[3:],num)
+    for i,b in enumerate(boxes):
+        boxes[i] = np.append(size,b,axis=0)
+    boxes[0],boxes[-1] = box1,box2
+    for i,b in enumerate(boxes):
+        if(i==0): continue
+        if(output_kf_cls and i!= len(boxes)-1):
+            output.append(np.concatenate((b, [id], info_kf, [frame[i]])).reshape(1, -1))
+        else:
+            output.append(np.concatenate((b, [id], info, [frame[i]])).reshape(1, -1))
+    # pdb.set_trace()
+
+    return output
+
+def interpolate(a,b,t):
+    return [a + i * (b - a) / (t - 1) for i in range(t)] 

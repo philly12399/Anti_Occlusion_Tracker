@@ -659,15 +659,18 @@ class trackingEvaluation(object):
                         tt.ignored      = True
                         ignoredtrackers[tt.track_id] = 1
                         continue
-                    for d in dc:
-                        # as KITTI does not provide ground truth 3D box for DontCare objects, we have to use
-                        # 2D IoU here and a threshold of 0.5 for 2D IoU. 
-                        overlap = boxoverlap(tt, d, "a")
-                        if overlap > self.min_overlap and not tt.valid: 
-                            tt.ignored      = True
-                            nignoredtracker += 1
-                            ignoredtrackers[tt.track_id] = 1
-                            break
+                    
+                    ## comment DC, I don't have 2d bbox
+                    # for d in dc:
+                    #     # as KITTI does not provide ground truth 3D box for DontCare objects, we have to use
+                    #     # 2D IoU here and a threshold of 0.5 for 2D IoU. 
+                    #     overlap = boxoverlap(tt, d, "a")
+                    #     if overlap > self.min_overlap and not tt.valid: 
+                    #         tt.ignored      = True
+                    #         nignoredtracker += 1
+                    #         ignoredtrackers[tt.track_id] = 1
+                    #         break
+                        
                 # print(nignoredtracker)
                 # check for ignored FN/TP (truncation or neighboring object class)
                 ignoredfn  = 0 # the number of ignored false negatives
