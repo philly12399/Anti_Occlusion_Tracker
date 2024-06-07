@@ -310,9 +310,9 @@ class AB3DMOT(object):
         for trk in reversed(self.track_buf):
             # change format from [x,y,z,theta,l,w,h] to [h,w,l,x,y,z,theta]
             if(trk.match == False): #unmatch就用kf的
-                det = trk.kf.x[:7].reshape((7, ))
+                det = copy.deepcopy(trk.kf.x[:7]).reshape((7, ))
             else:#match 就用det
-                det = trk.bbox[-1]
+                det = copy.deepcopy(trk.bbox[-1])
             det[0],det[1],det[2],det[3] = move_to_frame_axis(self.oxts, self.calib, self.label_coord, frame, det[:4])
             d = Box3D.bbox2array_raw(Box3D.array2bbox(det))
 
@@ -346,9 +346,9 @@ class AB3DMOT(object):
         for trk in reversed(self.track_buf):
             # change format from [x,y,z,theta,l,w,h] to [h,w,l,x,y,z,theta]
             if(trk.match == False): #unmatch就用kf的
-                det = trk.kf.x[:7].reshape((7, ))
+                det = copy.deepcopy(trk.kf.x[:7]).reshape((7, ))
             else:#match 就用det
-                det = trk.bbox[-1]
+                det = copy.deepcopy(trk.bbox[-1])
             det[0],det[1],det[2],det[3] = move_to_frame_axis(self.oxts, self.calib, self.label_coord, frame, det[:4])
             d = Box3D.bbox2array_raw(Box3D.array2bbox(det))
             
