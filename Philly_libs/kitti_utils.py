@@ -7,6 +7,7 @@ def move_to_frame_axis(oxts, calib, coord, frame, det):
 def move_to_origin_axis(oxts, calib, coord, frame, det):
     return move_to_axis(oxts, calib, coord, frame, det, mode="origin")
 import pdb
+import copy
 #origin mode or frame mode    
 def move_to_axis(oxts, calib, coord, frame, det, mode="origin"):
     assert mode == "origin" or mode == "frame"
@@ -18,10 +19,17 @@ def move_to_axis(oxts, calib, coord, frame, det, mode="origin"):
     if(coord == "camera"):
         det_xyz = calib.rect_to_imu(det_xyz)
         det_rot = calib.rect_to_velo_rot(det_rot)
-        
+    
     # translation
-    if mode == "origin":    T = oxts[frame]
-    elif mode == "frame":   T = inverse_transform(oxts[frame])
+    if mode == "origin":    
+        T = copy.deepcopy(oxts[frame])
+        T0 = inverse_transform(copy.deepcopy(oxts[0]))
+        T = np.matmul(T0,T)
+    elif mode == "frame":   
+        T = inverse_transform(copy.deepcopy(oxts[frame]))
+        T0 = copy.deepcopy(oxts[0])
+        T = np.matmul(T,T0)
+   
     xyz = np.append(det_xyz, [1.0])
     xyz_axis = np.matmul(T,xyz)[:3].reshape((1, -1))  
     
@@ -29,15 +37,32 @@ def move_to_axis(oxts, calib, coord, frame, det, mode="origin"):
     R = T[:3,:3]
     rot = np.array([np.cos(det_rot),np.sin(det_rot),0])
     rot_axis = np.matmul(R,rot)[:2]
+
     rot_axis = np.arctan2(rot_axis[1],rot_axis[0])
-    
+    # pdb.set_trace()
     #imu_to_rect
     if(coord == "camera"):
         xyz_axis = calib.imu_to_rect(xyz_axis)
         rot_axis = calib.velo_to_rect_rot(rot_axis)
+    # pdb.set_trace()
     return np.append(xyz_axis.flatten(),rot_axis).tolist()
 
+def EXP(oxts,frame):
     
+    T = oxts[frame]
+    T_inv = inverse_transform(oxts[frame])
+    
+    R0 = oxts[0][:3,:3]
+    R0_T= R0.T
+    
+    R = np.matmul(R0_T,T[:3,:3])
+    R_inv = np.matmul(T_inv[:3,:3],R0)
+    print("\n")
+    print(frame)
+    print(oxts[frame])
+    print(np.matmul(R,R_inv))
+    return
+
 def inverse_transform(T):
 
     R = T[:3, :3]
@@ -50,7 +75,9 @@ def inverse_transform(T):
     T_inv[:3, :3] = R_inv
     T_inv[:3, 3] = t_inv
     return T_inv
+
 import pdb
+
 def KITTI_FOV_filter(calib, pts_rect, img_shape=(375, 1242)):
     # pts_rect = calib.lidar_to_rect(points[:, 0:3])
     # print(pts_rect.shape)

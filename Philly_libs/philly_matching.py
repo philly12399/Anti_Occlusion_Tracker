@@ -4,6 +4,7 @@ from scipy.optimize import linear_sum_assignment
 from AB3DMOT_libs.dist_metrics import iou, dist3d, dist_ground, m_distance
 from Philly_libs.NDT import NDT_score,draw_NDT_voxel
 import copy
+from AB3DMOT_libs.box import Box3D
 INVALID_VALUE=1e10
 def compute_bbox_affinity(dets, trks, metric): #BIGGER BETTER
     # compute affinity matrix
@@ -19,7 +20,8 @@ def compute_bbox_affinity(dets, trks, metric): #BIGGER BETTER
             # elif metric == 'm_dis':   dist_now = -m_distance(det, trk, trk_inv_inn_matrices[t])
             elif metric == 'euler':   dist_now = -m_distance(det, trk, None)
             elif metric == 'dist_2d': dist_now = -dist_ground(det, trk)              	
-            elif metric == 'dist_3d': dist_now = -dist3d(det, trk)              				
+            elif metric == 'dist_3d': dist_now = -dist3d(det, trk) 
+            elif metric == 'angle':   dist_now = compute_angle_aff(det, trk)       				
             else: assert False, 'error'
             aff_matrix[d, t] = dist_now
 
@@ -63,12 +65,14 @@ def compute_pcd_affinity(NDT_Voxels, track_buf): #SMALLER BETTER
             aff_matrix[v, t] = NDT_score(voxels, rep_of_trk)
     return aff_matrix
 
-def pcd_affinity_postprocess(aff_matrix, dist, max_dist = 4.0):
+def pcd_affinity_postprocess(aff_matrix, dist, angle, max_dist = 4.0, max_angle=20):
     global INVALID_VALUE
     v,t = aff_matrix.shape
     for i in range(v):
         for j in range(t):
-            if(abs(dist[i][j]) >= max_dist):
+            if(abs(dist[i][j]) > max_dist):
+                aff_matrix[i][j] = INVALID_VALUE
+            elif(abs(angle[i][j]) > np.deg2rad(max_angle)):
                 aff_matrix[i][j] = INVALID_VALUE
     return aff_matrix
 
@@ -163,6 +167,7 @@ def data_association(dets, trks, NDT_Voxels, trk_buf, metric, threshold, algm='g
     unmatched_dets = sorted(unmatched_dets)
     unmatched_trks = sorted(unmatched_trks)
     
+    
     stage2_stat={}
     if(NDT_flag): #if use NDT
         ## First collect unmatched det NDT, exclude None
@@ -172,7 +177,7 @@ def data_association(dets, trks, NDT_Voxels, trk_buf, metric, threshold, algm='g
             if v!=None:
                 valid_det_NDT[0].append(unmatched_dets[i])
                 valid_det_NDT[1].append(v)
-                
+        
         ## Then collect unmatched trk 
         unmatched_trkbuf = [trk_buf[j] for j in unmatched_trks]
         valid_trkbuf = [[],[]] # for original id and data
@@ -191,9 +196,12 @@ def data_association(dets, trks, NDT_Voxels, trk_buf, metric, threshold, algm='g
                 det1 = [dets[i] for i in valid_det_NDT[0]]
                 ##FIXED HISTORY = 1, so i use trksT [0]
                 trks1 = [trks_T[0][j] for j in valid_trkbuf[0]] 
+                trk_buf_bbox=[Box3D.array2bbox(trk_buf[j].bbox[-1]) for j in valid_trkbuf[0]] 
+                
                 dist = compute_bbox_affinity(det1, trks1, "dist_2d") 
+                angle = compute_bbox_affinity(det1, trk_buf_bbox, "angle")
                 pcd_affinity_matrix = compute_pcd_affinity(valid_det_NDT[1], valid_trkbuf[1])
-                pcd_affinity_matrix_filted = pcd_affinity_postprocess(copy.deepcopy(pcd_affinity_matrix), dist, stage2_param['max_dist'])
+                pcd_affinity_matrix_filted = pcd_affinity_postprocess(copy.deepcopy(pcd_affinity_matrix), dist, angle,stage2_param['max_dist'], stage2_param['max_angle'])
                 matched_indices_NDT, _ = optimize_matching(pcd_affinity_matrix_filted, 'hungar')
                 # print(pcd_affinity_matrix)  
                 # print(matched_indices_NDT)   
@@ -206,7 +214,10 @@ def data_association(dets, trks, NDT_Voxels, trk_buf, metric, threshold, algm='g
                         matches.append(np.array([d1,t1]).reshape(1, 2))
                         unmatched_dets.remove(d1)
                         unmatched_trks.remove(t1)
-                        pair.append([d1,t1])
+                        pair.append([m[0],m[1]])
+
+                
+                    
                 stage2_stat['aff'] = pcd_affinity_matrix
                 stage2_stat['pair'] = pair
                 stage2_stat['NDT_det_index'] = valid_det_NDT[0] 
@@ -218,3 +229,18 @@ def data_association(dets, trks, NDT_Voxels, trk_buf, metric, threshold, algm='g
     else: matches = np.concatenate(matches, axis=0)
     
     return matches, np.array(unmatched_dets), np.array(unmatched_trks), cost_bbox, aff_matrix, stage2_stat
+
+def compute_bbox_angle(det, trk):
+    # compute the angle difference between two boxes
+    angle = angle_normalize(-np.arctan2((det.z-trk.z),(det.x-trk.x)))  #加負是因為kitti的roty定義是反的(逆時針是負)
+    
+    return angle
+
+def compute_angle_aff(det, trk): ##trk head(前進方向) , bbox angle(associate的連線), close enough
+    angle = compute_bbox_angle(det, trk)
+    return abs(angle_normalize(angle)-angle_normalize(trk.ry))
+
+def angle_normalize(theta):
+    if theta >= np.pi: theta -= np.pi * 2    # make the theta still in the range
+    if theta < -np.pi: theta += np.pi * 2
+    return theta

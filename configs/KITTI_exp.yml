@@ -9,9 +9,9 @@ split                        : val        # val, test
 det_name                     : diff3  # name of the detector [pointrcnn, pvrcnn]/ gt
 cat_list                     : ['car'] #['Car', 'Pedestrian', 'Cyclist']
 #--------------- SEQ
-seq_eval                     :  [18,20] #[1,2,5,7,8,9,11,18,19,20] #sequence to track, [] means by default
+seq_eval                     : [20] #[1,2,5,7,8,9,11,18,19,20] #sequence to track, [] means by default
 # --------------- model.py
-ego_com                      : true      # turn on only slightly reduce speed but increase a lot for performance
+ego_com                      : True      # turn on only slightly reduce speed but increase a lot for performance
 
 #---------------- addition
 label_format                 : Kitti      # Kitti, Waymo, nuscenes, AB3DMOT
@@ -22,7 +22,7 @@ output_kf_cls                : True ## if true output kf car as KF_Car class
 output_mode                 : 'kf' ## output by interpolate or kf predict
 
 # ------------------NDT
-NDT_flag                     : False
+NDT_flag                     : True
 pcd_db_root                  : "./data/KITTI/dense_db/dense_128_all/"
 NDT_cfg                      : {'voxel_size': 0.5, 'overlap': True, 'min_pts_voxel': 5, 'noise': 0.05}
 NDT_cache_root               : "./data/KITTI/NDT_pkl/"
@@ -33,5 +33,6 @@ use_default                  : False
 base_param                   : {'car':{'algm': 'hungar', 'metric': 'giou_3d', 'thres': 0.2, 'min_hits': 1, 'max_age': 20},
                                 'cyclist':{'algm': 'hungar', 'metric': 'dist_3d', 'thres': 2.5, 'min_hits': 1, 'max_age': 10}}         
 # --------------- DA stage2 threshold
-stage2_param                 : {'car': {'NDT_score': -15000,'max_dist': 6.0},
-                                'cyclist': {'NDT_score': -20000,'max_dist': 4.0}}  
+stage2_param                 : {'car': {'NDT_score': -15000,'max_dist': 6.0,'max_angle': 20},
+                                'cyclist': {'NDT_score': -20000,'max_dist': 4.0,'max_angle': 20}}  
+#max_angle: degree

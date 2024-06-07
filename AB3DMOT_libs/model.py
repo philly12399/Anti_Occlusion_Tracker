@@ -178,7 +178,7 @@ class AB3DMOT(object):
         dets_new = []
         for det in dets:
             d = [det.x, det.y, det.z, det.ry]
-            d_origin = move_to_origin_axis(self.oxts, self.calib, self.label_coord, frame, d)
+            d_origin = move_to_origin_axis(self.oxts, self.calib, self.label_coord, frame, d)            
             bbox_origin = Box3D.array2bbox_raw([det.h, det.w, det.l] + d_origin)
             dets_new.append(bbox_origin)
         return dets_new
