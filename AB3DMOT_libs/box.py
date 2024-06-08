@@ -80,8 +80,8 @@ class Box3D:
 
             x -> w, z -> l, y -> h
         '''       
-        if(bbox.label_format == "Philly"):
-            return box2corners3d_lidarcoord(bbox)
+        # if(bbox.label_format == "Philly"):
+        #     return box2corners3d_lidarcoord(bbox)
         # if already computed before, then skip it
         if bbox.corners_3d_cam is not None:
             return bbox.corners_3d_cam

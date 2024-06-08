@@ -18,15 +18,17 @@ def parse_args():
     args = parser.parse_args()
     return args
 
-def combine_trk_cat(split, dataset, method, suffix, num_hypo):
+def combine_trk_cat(split, dataset, method, suffix, num_hypo,config_path,seq_cfg=None):
 
 	# load dataset-specific config
 	file_path = os.path.dirname(os.path.realpath(__file__))
 	root_dir = os.path.join(file_path, '../../results', dataset)
 	_, det_id2str, _, seq_list, _ = get_subfolder_seq(dataset, split)
-
+	if(seq_cfg is not None):
+		seq_list = seq_cfg
+         
 	# load config files
-	config_path = os.path.join(file_path, '../../configs/%s.yml' % dataset)
+	# config_path = os.path.join(file_path, '../../configs/%s.yml' % dataset)
 	cfg, _ = Config(config_path)
 	log = os.path.join(root_dir, '%s_%s_%s' % (method, split, suffix), 'combine_log.txt')
 	mkdir_if_missing(log); log = open(log, 'w+')
