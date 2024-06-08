@@ -575,7 +575,7 @@ class trackingEvaluation(object):
                 # row is gt, column is det
                 cost_matrix = []
                 this_ids = [[],[]]
-                for gg in g:
+                for gg in g:                    
                     # save current ids
                     this_ids[0].append(gg.track_id)
                     this_ids[1].append(-1)
@@ -584,11 +584,11 @@ class trackingEvaluation(object):
                     gg.fragmentation = 0
                     cost_row         = []
                     for tt in t:
-                        
                         if self.eval_2diou:
                             c = 1 - boxoverlap(gg, tt)
                         elif self.eval_3diou:
-                            c = 1 - iou(gg, tt, metric='iou_3d')
+                            c = 1 - iou(gg, tt, metric='iou_3d')                         
+                                                 
                         else:
                             assert False, 'error'
 
@@ -1336,7 +1336,10 @@ def main(args):
     mail = mailpy.Mail("")
     config_path = args.config
     cfg, settings_show = Config(config_path)
-
+    
+    if(args.exp_path != ""):
+        cfg['trk_path']=os.path.join(args.exp_path,"label")
+        cfg['out_path']=args.exp_path
     #load cfg
     gt_path = cfg['gt_path']
     t_path = cfg['trk_path']
@@ -1369,6 +1372,7 @@ def main(args):
 def parse_args():
     parser = argparse.ArgumentParser(description='AB3DMOT')
     parser.add_argument('-c','--config', type=str, required=True, help='Config file path')
+    parser.add_argument('-e','--exp_path', type=str, default="", help='whole exp path')
     args = parser.parse_args()
     return args
 #########################################################################
