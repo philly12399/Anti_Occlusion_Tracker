@@ -428,16 +428,35 @@ class AB3DMOT(object):
         # matching
 
         # matched, unmatched_dets, unmatched_trks, cost, affi = data_association(dets, trks, self.metric, self.thres, self.algm)
-        matched, unmatched_dets, unmatched_trks, cost, affi, stage2_stat = data_association_philly(dets, trks, NDT_Voxels, self.track_buf, self.metric, self.thres, self.algm, history = self.history, NDT_flag=self.NDT_flag, stage2_param = self.stage2_param)
+        trk_mask_1 = []
+        for t,trk in enumerate(self.track_buf):
+            if(trk.time_since_update > 1):
+                trk_mask_1.append(t)
+                
+        matched1, unmatched_dets1, unmatched_trks1, cost1, affi1, stage2_stat = data_association_philly(dets, trks, NDT_Voxels, self.track_buf, [], self.metric, self.thres, self.algm, history = self.history, NDT_flag=False)
+
+        #collect da first stage, unmatched 
+        dets2=[dets[i] for i in unmatched_dets1]
+        NDT_Voxels2=[NDT_Voxels[i] for i in unmatched_dets1]
+        trks2=[trks[i] for i in unmatched_trks1]
+        tb2=[self.track_buf[i] for i in unmatched_trks1]
+        
+        
+        trk_mask_2 = []
+        matched2, unmatched_dets2, unmatched_trks2, cost2, affi2, stage2_stat = data_association_philly(dets2, trks2, NDT_Voxels2, tb2, trk_mask_2, "dist_3d", -3, self.algm, history = self.history, NDT_flag=self.NDT_flag, stage2_param=self.stage2_param)
+        
+        #Merge stage1 and stage2, map unmatched id back
+        matched = matched1.tolist()
+        unmatched_dets, unmatched_trks =[],[]
+        for m in matched2:
+            matched.append([unmatched_dets1[m[0]],unmatched_trks1[m[1]]])
+        for m in unmatched_dets2:
+            unmatched_dets.append(unmatched_dets1[m])
+        for m in unmatched_trks2:
+            unmatched_trks.append(unmatched_trks1[m])
             
-        # print_log('detections are', log=self.log, display=False)
-        # print_log(dets, log=self.log, display=False)
-        # print_log('tracklets are', log=self.log, display=False)
-        # print_log(trks, log=self.log, display=False)
-        # print_log('matched indexes are', log=self.log, display=False)
-        # print_log(matched, log=self.log, display=False)
-        # print_log('raw affinity matrix is', log=self.log, display=False)
-        # print_log(affi, log=self.log, display=False)
+        matched = np.array(matched)
+        
 
         # update trks with matched detection measurement
         self.update(matched, unmatched_trks, dets, info, NDT_Voxels, pcd, frame)
@@ -478,4 +497,4 @@ class AB3DMOT(object):
             print_log(f"Pair: {stage2_stat['pair']}", log=self.log, display=False)
             if(len(stage2_stat['pair'])>0):
                 print_log(f"Revive success.", log=self.log, display=False)
-        return results, affi
+        return results, affi1
