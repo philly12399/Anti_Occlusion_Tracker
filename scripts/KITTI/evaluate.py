@@ -213,7 +213,8 @@ class trackingEvaluation(object):
         self.gt_trajectories            = [[] for x in range(self.n_sequences)]
         self.ign_trajectories           = [[] for x in range(self.n_sequences)]
         
-        self.other_stats = {}
+        self.other_stats_int = {}
+        self.other_stats_seq = {}
         
     def loadGroundtruth(self):
         """
@@ -481,7 +482,8 @@ class trackingEvaluation(object):
         self.gt_trajectories            = [[] for x in range(self.n_sequences)]
         self.ign_trajectories           = [[] for x in range(self.n_sequences)]
         
-        self.other_stats = {}
+        self.other_stats_int = {}
+        self.other_stats_seq = {}
         
         return 
 
@@ -849,8 +851,10 @@ class trackingEvaluation(object):
         ids_cnt_seq={}
         ids_seq={}
         ##Count merged track, two diffetent track merged
-        merged_track_cnt={}
+        merged_track_cnt=0
         merged_track={}
+        fully_track_cnt = 0
+        ids_track_cnt = 0
         for seq_idx, (seq_trajectories,seq_ignored) in enumerate(zip(self.gt_trajectories, self.ign_trajectories)):
             if len(seq_trajectories)==0:
                 continue
@@ -860,22 +864,27 @@ class trackingEvaluation(object):
             ids_cnt_seq[seq_idx] = 0
             ids_seq_list = []
             ##Count merged track, two diffetent track merged
-            merged_track_cnt[seq_idx] = 0
-            merged_track[seq_idx] = []        
+            merged_track[seq_idx] = []
             used_id={}
             
             for g, ign_g in zip(seq_trajectories.values(), seq_ignored.values()):
-                # all frames of this gt trajectory are ignored  
                 ##Count merged track, two diffetent track merged      
                 id_this_trk=set(g)
                 if(-1 in id_this_trk):        
                     id_this_trk.remove(-1)
+                
+                    
                 for set_id in id_this_trk:
                     if set_id not in used_id:   used_id[set_id] = 1
                     else:   
-                        merged_track_cnt[seq_idx] += 1
+                        merged_track_cnt += 1
                         merged_track[seq_idx].append(set_id)
                         
+                if(len(id_this_trk)==1):
+                    fully_track_cnt+= 1
+                else:
+                    ids_track_cnt+=1
+                    
                 if all(ign_g):
                     n_ignored_tr+=1
                     n_ignored_tr_total+=1
@@ -924,7 +933,8 @@ class trackingEvaluation(object):
                 ids_cnt_seq[seq_idx] = tmpId_switches
                 ids_seq[seq_idx] = ids_seq_list
         ##PHILLY EXP STATS 
-        self.other_stats = {"merged_track":merged_track,"merged_track_cnt":merged_track_cnt, "ids_cnt_seq":ids_cnt_seq, "ids_seq":ids_seq}           
+        self.other_stats_int ={"fully_track_cnt":fully_track_cnt,"ids_track_cnt":ids_track_cnt,"merged_track_cnt":merged_track_cnt}
+        self.other_stats_seq = {"merged_track":merged_track, "ids_cnt_seq":ids_cnt_seq, "ids_seq":ids_seq}           
         
                    
         if (self.n_gt_trajectories-n_ignored_tr_total)==0:
@@ -1032,8 +1042,12 @@ class trackingEvaluation(object):
         summary += self.printEntry("Tracker Trajectories", self.n_tr_trajectories) + "\n"
         summary += "\n"
         #summary += self.printEntry("Ignored Tracker Objects with Associated Ignored Ground Truth Objects", self.n_igttr) + "\n"
-        for stat in self.other_stats:
-            old_stat=self.other_stats[stat]
+        for stat in self.other_stats_int:
+            summary += f"{stat}: {self.other_stats_int[stat]}\n"
+        summary += "\n" 
+        
+        for stat in self.other_stats_seq:
+            old_stat=self.other_stats_seq[stat]
             new_stat={}
             for s in old_stat:
                 if(old_stat[s]==0 or old_stat[s]=="" or old_stat[s]==[]): continue
