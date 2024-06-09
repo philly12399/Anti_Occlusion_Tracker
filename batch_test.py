@@ -21,6 +21,13 @@ import pdb
     help="Name of config file .",
 )
 @click.option(
+    "--eval_config",
+    "-ec",
+    type=str,
+    default="KITTI_eval_gtdet_car.yml",
+    help="Name of eval config file .",
+)
+@click.option(
     "--output",
     "-o",
     type=str,
@@ -34,7 +41,7 @@ import pdb
     default="exp1",
     help="Name of exp.",
 )
-def main(det_root, config, output, exp):
+def main(det_root, config, eval_config, output, exp):
     diff_range=[0,1,2,3,4]
     diff_range=[3,4]
     
@@ -54,7 +61,7 @@ def main(det_root, config, output, exp):
         print(f"============================ Run {target} ============================")
         os.system(f"ln -sf ./{target} {link}")
         os.system(f"python3 main.py --config ./configs/{config}")
-        os.system(f"python3 ./scripts/KITTI/evaluate.py --config ./eval_configs/{config}")
+        os.system(f"python3 ./scripts/KITTI/evaluate.py --config ./eval_configs/{eval_config}")
         os.system(f"mv {output}/exp {output_path}/{target}")
         os.system(f"unlink {link}")
     

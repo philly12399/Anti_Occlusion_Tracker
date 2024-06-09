@@ -105,10 +105,8 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num_to_trk):
             sys.stdout.write(print_str)
             sys.stdout.flush()
             # tracking by detection
-            TT=[time.time()]
-            TT.append(time.time())
             dets_frame = get_frame_det(seq_dets, frame, format=cfg.label_format)
-            TT.append(time.time())
+
             ## load PCDs
             if(cfg.NDT_flag):                
                 pcd_info_frame = pcd_info_seq[frame-min_frame]                
@@ -116,9 +114,7 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num_to_trk):
             else:
                 pcd_frame = [None for i in range(len(dets_frame['dets']))]
 
-            TT.append(time.time())
             assert len(pcd_frame) == len(dets_frame['dets'])
-            # print(f"load_pcd_time:{TT[3]-TT[2]}s ; load_label_time:{TT[2]-TT[1]}s")
             since = time.time()
             results, affi = tracker.track(dets_frame, frame, seq_name, pcd_frame, frame_det_idx[frame])
             # print(f"tracker_total_time:{time.time()-since}s")
