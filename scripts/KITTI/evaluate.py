@@ -899,6 +899,7 @@ class trackingEvaluation(object):
                 # first detection (necessary to be in gt_trajectories) is always tracked
                 tracked = 1 if g[0]>=0 else 0
                 lgt = 0 if ign_g[0] else 1
+                ids_block_time=0
                 for f in range(1,len(g)):
                     if ign_g[f]:
                         last_id = -1
@@ -907,13 +908,15 @@ class trackingEvaluation(object):
                     if last_id != g[f] and last_id != -1 and g[f] != -1:  #and  g[f-1] != -1:
                         tmpId_switches   += 1
                         self.id_switches += 1
-                        ids_seq_list.append((last_id,g[f]))
+                        ids_seq_list.append((last_id,g[f],ids_block_time))
                     if f < len(g)-1 and g[f-1] != g[f] and last_id != -1 and g[f] != -1: #and g[f+1] != -1:
                         tmpFragments   += 1
                         self.fragments += 1
                     if g[f] != -1:
                         tracked += 1
                         last_id = g[f]
+                        ids_block_time=0
+                    else:   ids_block_time+=1
                 # handle last frame; tracked state is handled in for loop (g[f]!=-1)
                 if len(g)>1 and g[f-1] != g[f] and last_id != -1  and g[f] != -1 and not ign_g[f]:
                     tmpFragments   += 1
@@ -934,7 +937,7 @@ class trackingEvaluation(object):
                 ids_seq[seq_idx] = ids_seq_list
         ##PHILLY EXP STATS 
         self.other_stats_int ={"fully_track_cnt":fully_track_cnt,"ids_track_cnt":ids_track_cnt,"merged_track_cnt":merged_track_cnt}
-        self.other_stats_seq = {"merged_track":merged_track, "ids_cnt_seq":ids_cnt_seq, "ids_seq":ids_seq}           
+        self.other_stats_seq = {"merged_track":merged_track, "ids_cnt_seq":ids_cnt_seq, "ids_seq (id1,id2,block_time)":ids_seq}           
         
                    
         if (self.n_gt_trajectories-n_ignored_tr_total)==0:
@@ -1384,4 +1387,5 @@ if __name__ == "__main__":
     
     args = parse_args()
     main(args)
-    
+
+
