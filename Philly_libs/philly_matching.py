@@ -119,7 +119,7 @@ def optimize_matching(matrix, algm='greedy'): #find min
         cost += matrix[m1][m2]
     return matched_indices, cost
 
-def data_association(dets, trks, NDT_Voxels, trk_buf, trk_mask, metric, threshold, algm='greedy', history = 1, NDT_flag=False, stage2_param = {}):   
+def data_association(dets, trks, NDT_Voxels, trk_buf, trk_mask, metric, threshold, algm='greedy', history = 1, NDT_flag=False, NDT_thres = {}):   
     """
     Assigns detections to tracked object
 
@@ -196,7 +196,7 @@ def data_association(dets, trks, NDT_Voxels, trk_buf, trk_mask, metric, threshol
                 dist = compute_bbox_affinity(det1, trks1, "dist_2d") 
                 angle = compute_bbox_affinity(det1, trk_buf_bbox, "angle")
                 pcd_affinity_matrix = compute_pcd_affinity(valid_det_NDT[1], valid_trkbuf[1])
-                pcd_affinity_matrix_filted = pcd_affinity_postprocess(copy.deepcopy(pcd_affinity_matrix), dist, angle,stage2_param['max_dist'], stage2_param['max_angle'])
+                pcd_affinity_matrix_filted = pcd_affinity_postprocess(copy.deepcopy(pcd_affinity_matrix), dist, angle,NDT_thres['max_dist'], NDT_thres['max_angle'])
                 matched_indices_NDT, _ = optimize_matching(pcd_affinity_matrix_filted, 'hungar')
                 # print(pcd_affinity_matrix)  
                 # print(matched_indices_NDT)   
@@ -205,7 +205,7 @@ def data_association(dets, trks, NDT_Voxels, trk_buf, trk_mask, metric, threshol
                 for m in matched_indices_NDT:
                     d1=valid_det_NDT[0][m[0]]
                     t1=valid_trkbuf[0][m[1]]
-                    if (pcd_affinity_matrix_filted[m[0], m[1]] < stage2_param['NDT_score']):
+                    if (pcd_affinity_matrix_filted[m[0], m[1]] < NDT_thres['NDT_score']):
                         matches.append(np.array([d1,t1]).reshape(1, 2))
                         unmatched_dets.remove(d1)
                         unmatched_trks.remove(t1)
@@ -217,10 +217,22 @@ def data_association(dets, trks, NDT_Voxels, trk_buf, trk_mask, metric, threshol
                 NDT_trk_index =[trk_buf[i].id for i in valid_trkbuf[0]]
                 stage2_stat['NDT_trk_index'] = NDT_trk_index
                 stage2_stat['dist'] = dist
+            else:
+                stage2_stat['log']= f"{len(valid_trkbuf[0])} valid NDT trkbuf ; {len(unmatched_trks)} unmatched trk"
+        else:
+            stage2_stat['log']=""
+            if(len(valid_det_NDT[0])==0):
+                stage2_stat['log'] = f"{len(valid_det_NDT[0])} valid NDT det ; {len(unmatched_dets)} unmatched det\n "
+                stage2_stat['unmatched_det'] = True
+            if(len(unmatched_trkbuf)==0):
+                if(stage2_stat['log']!=""):
+                   stage2_stat['log']+= f"\n{len(unmatched_trks)} unmatched trk" 
+                else:
+                    stage2_stat['log']= f"{len(unmatched_trks)} unmatched trk"
+            
     if len(matches) == 0: 
         matches = np.empty((0, 2),dtype=int)
     else: matches = np.concatenate(matches, axis=0)
-    
     return matches, np.array(unmatched_dets), np.array(unmatched_trks), cost_bbox, aff_matrix, stage2_stat
 
 def compute_bbox_angle(det, trk):

@@ -57,6 +57,7 @@ class AB3DMOT(object):
         self.label_coord = cfg.label_coord
         self.buffer_size = cfg.buffer_size            
         self.history = cfg.history
+        self.kf_initial_speed=cfg.kf_initial_speed
         
         self.output_kf_cls = cfg.output_kf_cls
         self.output_mode =  cfg.output_mode.lower()
@@ -65,14 +66,14 @@ class AB3DMOT(object):
         ##NDT
         self.NDT_flag = cfg.NDT_flag
         self.NDT_cfg = None
-        self.stage2_param = None
+        self.NDT_thres = None
         if(self.NDT_flag):
             self.NDT_cfg  = cfg.NDT_cfg
             self.NDT_cache_path = os.path.join(cfg.NDT_cache_root,cfg.NDT_cache_name,seq_name)                    
             if(not os.path.exists(self.NDT_cache_path)):
                 print(f"Load NDT cache failed, {self.NDT_cache_path} not exists")
                 assert False
-            self.stage2_param = cfg.stage2_param[cat.lower()]
+            self.NDT_thres = cfg.NDT_thres[cat.lower()]
                                 
           # debug
         # self.debug_id = 2
@@ -81,6 +82,11 @@ class AB3DMOT(object):
         self.debugger=[]
         
         self.global_cnt=0
+        self.two_stage=False
+        self.two_stage=cfg.two_stage
+        self.stage2_param = cfg.base_param[cat.lower()] 
+        if("stage2_param" in cfg):
+            self.stage2_param = cfg.stage2_param[cat.lower()]
         
     def get_param(self, cfg, cat, param=None):
         # get parameters for each dataset
@@ -294,7 +300,7 @@ class AB3DMOT(object):
         new_id_list = list()					# new ID generated for unmatched detections
         for i in unmatched_dets:        			# a scalar of index
             bbox3d = Box3D.bbox2array(dets[i])
-            trk = TrackBuffer(info[i, :], self.ID_count[0], bbox3d, voxels[i], pcd[i], frame, NDT_cfg = self.NDT_cfg)
+            trk = TrackBuffer(info[i, :], self.ID_count[0], bbox3d, voxels[i], pcd[i], frame, kf_initial_speed=self.kf_initial_speed, NDT_cfg = self.NDT_cfg)
             self.track_buf.append(trk)
             new_id_list.append(trk.id)
             # print('track ID %s has been initialized due to new detection' % trk.id)
@@ -407,7 +413,7 @@ class AB3DMOT(object):
             old_dets = dets
             
         # tracks propagation based on velocity
-        trks = self.prediction(frame, history = self.history)
+        trks = self.prediction(frame, history = self.history) 
         old_trks = trks
 
         if(self.NDT_flag):
@@ -432,30 +438,34 @@ class AB3DMOT(object):
         for t,trk in enumerate(self.track_buf):
             if(trk.time_since_update > 1):
                 trk_mask_1.append(t)
-                
-        matched1, unmatched_dets1, unmatched_trks1, cost1, affi1, stage2_stat = data_association_philly(dets, trks, NDT_Voxels, self.track_buf, [], self.metric, self.thres, self.algm, history = self.history, NDT_flag=False)
+        ##if one stage use default, if two stage, stage1 don't use NDT
+        stage1_NDT_flag = (not self.two_stage) and self.NDT_flag
+        matched1, unmatched_dets1, unmatched_trks1, cost1, affi1, stage2_stat = data_association_philly(dets, trks, NDT_Voxels, self.track_buf, [], self.metric, self.thres, self.algm, history = self.history, NDT_flag=stage1_NDT_flag, NDT_thres=self.NDT_thres)
+        
+        if(not self.two_stage):
+            matched,unmatched_dets, unmatched_trks = matched1,unmatched_dets1, unmatched_trks1
+        else:
+            # #collect da first stage, unmatched 
+            dets2=[dets[i] for i in unmatched_dets1]
+            NDT_Voxels2=[NDT_Voxels[i] for i in unmatched_dets1]
+            trks2=[trks[i] for i in unmatched_trks1]
+            tb2=[self.track_buf[i] for i in unmatched_trks1]
 
-        #collect da first stage, unmatched 
-        dets2=[dets[i] for i in unmatched_dets1]
-        NDT_Voxels2=[NDT_Voxels[i] for i in unmatched_dets1]
-        trks2=[trks[i] for i in unmatched_trks1]
-        tb2=[self.track_buf[i] for i in unmatched_trks1]
-        
-        
-        trk_mask_2 = []
-        matched2, unmatched_dets2, unmatched_trks2, cost2, affi2, stage2_stat = data_association_philly(dets2, trks2, NDT_Voxels2, tb2, trk_mask_2, "dist_3d", -3, self.algm, history = self.history, NDT_flag=self.NDT_flag, stage2_param=self.stage2_param)
-        
-        #Merge stage1 and stage2, map unmatched id back
-        matched = matched1.tolist()
-        unmatched_dets, unmatched_trks =[],[]
-        for m in matched2:
-            matched.append([unmatched_dets1[m[0]],unmatched_trks1[m[1]]])
-        for m in unmatched_dets2:
-            unmatched_dets.append(unmatched_dets1[m])
-        for m in unmatched_trks2:
-            unmatched_trks.append(unmatched_trks1[m])
+            trk_mask_2 = []
+            self.stage2_param
+            matched2, unmatched_dets2, unmatched_trks2, cost2, affi2, stage2_stat = data_association_philly(dets2, trks2, NDT_Voxels2, tb2, trk_mask_2, self.stage2_param['metric'], self.stage2_param['thres'], self.stage2_param['algm'], history = self.history, NDT_flag=self.NDT_flag, NDT_thres=self.NDT_thres,)
             
-        matched = np.array(matched)
+            #Merge stage1 and stage2, map unmatched id back
+            matched = matched1.tolist()   
+            unmatched_dets, unmatched_trks =[],[]        
+            for m in matched2:
+                matched.append([unmatched_dets1[m[0]],unmatched_trks1[m[1]]])
+            for m in unmatched_dets2:
+                unmatched_dets.append(unmatched_dets1[m])
+            for m in unmatched_trks2:
+                unmatched_trks.append(unmatched_trks1[m])
+                
+            matched = np.array(matched)
         
 
         # update trks with matched detection measurement
@@ -486,7 +496,7 @@ class AB3DMOT(object):
         # for result_index in range(len(results)):
             # print_log(results[result_index][:, :8], log=self.log, display=False)
             # print_log('', log=self.log, display=False)
-            
+        
         if('aff' in stage2_stat):
             self.global_cnt +=len(stage2_stat['pair'])
             print_log(f"Stage2 activate.", log=self.log, display=False)
@@ -497,4 +507,9 @@ class AB3DMOT(object):
             print_log(f"Pair: {stage2_stat['pair']}", log=self.log, display=False)
             if(len(stage2_stat['pair'])>0):
                 print_log(f"Revive success.", log=self.log, display=False)
+        elif('log' in stage2_stat):  
+            print_log(f"Stage2 doesn't activate.\n {stage2_stat['log']}", log=self.log, display=False)
+            if('unmatched_det' in stage2_stat):
+                ud_idx=[det_idx[ud] for ud in unmatched_dets]
+                print_log(f"unmatched_det_idx: {ud_idx}", log=self.log, display=False)
         return results, affi1
