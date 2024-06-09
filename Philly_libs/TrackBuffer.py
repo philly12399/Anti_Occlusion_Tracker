@@ -106,7 +106,7 @@ def KF_predict(kf,time=1):
     new_kf = copy.copy(kf)
     for t in range(time):
         new_kf.predict()
-    new_kf.predict()
+    # new_kf.predict()
     return new_kf
         
 def POT_append_downsample(old_pcds, pcd, alpha=0.6):
