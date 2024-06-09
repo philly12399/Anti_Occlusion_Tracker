@@ -5,7 +5,7 @@ description                  : KITTI
 gt_path                      : "/home/philly12399/thesis/AB3DMOT/scripts/KITTI/label/" 
 trk_path                     : "/home/philly12399/thesis/AB3DMOT/tracker_exp_local/KITTI/exp/label"
 out_path                     : "/home/philly12399/thesis/AB3DMOT/tracker_exp_local/KITTI/exp/"
-calib_path                   : "/home/philly12399/philly_data/KITTI_tracking/training/calib/" 
+calib_path                   : "/home/philly12399/philly_ssd/KITTI_tracking/training/calib/" 
 exp_name                     : eval
 # ------------------- Eval Options -------------------------
 iou                          : 3D

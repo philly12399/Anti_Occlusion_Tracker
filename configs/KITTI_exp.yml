@@ -9,7 +9,7 @@ split                        : val        # val, test
 det_name                     : diff3  # name of the detector [pointrcnn, pvrcnn]/ gt
 cat_list                     : ['car'] #['Car', 'Pedestrian', 'Cyclist']
 #--------------- SEQ
-seq_eval                     : [20] #[1,2,5,7,8,9,11,18,19,20] #sequence to track, [] means by default
+seq_eval                     : [0] #[1,2,5,7,8,9,11,18,19,20] #sequence to track, [] means by default
 # --------------- model.py
 ego_com                      : True      # turn on only slightly reduce speed but increase a lot for performance
 
@@ -19,7 +19,8 @@ label_coord                  : camera       # lidar or camera
 buffer_size                  : 30
 history                      : 1
 output_kf_cls                : True ## if true output kf car as KF_Car class
-output_mode                 : 'kf' ## output by interpolate or kf predict
+output_mode                  : 'kf' ## output by interpolate or kf predict
+kf_initial_speed             : 30 #km/h
 
 # ------------------NDT
 NDT_flag                     : True
@@ -30,9 +31,12 @@ NDT_cache_name               : "cache-128" #path for load/write
 
 #---------------AB3DMOT base
 use_default                  : False
-base_param                   : {'car':{'algm': 'hungar', 'metric': 'giou_3d', 'thres': 0.2, 'min_hits': 1, 'max_age': 20},
+base_param                   : {'car':{'algm': 'hungar', 'metric': 'giou_3d', 'thres': 0.2, 'min_hits': 1, 'max_age': 40},
                                 'cyclist':{'algm': 'hungar', 'metric': 'dist_3d', 'thres': 2.5, 'min_hits': 1, 'max_age': 10}}         
 # --------------- DA stage2 threshold
-stage2_param                 : {'car': {'NDT_score': -15000,'max_dist': 6.0,'max_angle': 20},
-                                'cyclist': {'NDT_score': -20000,'max_dist': 4.0,'max_angle': 20}}  
+NDT_thres                   : {'car': {'NDT_score': -15000,'max_dist': 6.0,'max_angle': 20},
+                                'cyclist': {'NDT_score': -20000,'max_dist': 4.0,'max_angle': 20}}
+two_stage: True
+stage2_param                : {'car':{'algm': 'hungar', 'metric': 'giou_3d', 'thres': 0.2},
+                                'cyclist':{'algm': 'hungar', 'metric': 'dist_3d', 'thres': 2.5}}                                   
 #max_angle: degree
