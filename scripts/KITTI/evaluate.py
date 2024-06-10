@@ -294,9 +294,9 @@ class trackingEvaluation(object):
                 t_data.y1           = float(fields[7])          # top    [px]
                 t_data.x2           = float(fields[8])          # right  [px]
                 t_data.y2           = float(fields[9])          # bottom [px]
-                t_data.h            = float(fields[12])         # height [m]
+                t_data.h            = float(fields[10])         # height [m]
                 t_data.w            = float(fields[11])         # width  [m]
-                t_data.l            = float(fields[10])         # length [m]
+                t_data.l            = float(fields[12])         # length [m]
                 t_data.x            = float(fields[13])         # X [m]
                 t_data.y            = float(fields[14])         # Y [m]
                 t_data.z            = float(fields[15])         # Z [m]
@@ -310,7 +310,8 @@ class trackingEvaluation(object):
                     else:
                         self.mail.msg("file is not in KITTI format")
                         return
-
+                if(label_format.lower() == "wayside"):
+                    t_data.h,t_data.w,t_data.l =t_data.l,t_data.w,t_data.h
                 # do not consider objects marked as invalid
                 if t_data.track_id is -1 and t_data.obj_type != "dontcare":
                     continue                                 

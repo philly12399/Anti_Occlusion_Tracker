@@ -184,7 +184,7 @@ class AB3DMOT(object):
         dets_new = []
         for det in dets:
             d = [det.x, det.y, det.z, det.ry]
-            d_origin = move_to_origin_axis(self.oxts, self.calib, self.label_coord, frame, d)            
+            d_origin = move_to_origin_axis(self.oxts, self.calib, self.label_coord, frame, d)    
             bbox_origin = Box3D.array2bbox_raw([det.h, det.w, det.l] + d_origin)
             dets_new.append(bbox_origin)
         return dets_new
@@ -415,7 +415,11 @@ class AB3DMOT(object):
         # tracks propagation based on velocity
         trks = self.prediction(frame, history = self.history) 
         old_trks = trks
-
+        # if(frame>=1):
+        #     print("last frame bbox",self.track_buf[0].bbox[-1].__str__())
+        #     print("predict",trks[0][0].__str__())            
+        #     print("speed",self.track_buf[0].kf_buffer[-1].x[-3:])
+        #     pdb.set_trace()
         if(self.NDT_flag):
             NDT_Voxels = []  
             NDT_Voxels_PATH = []          

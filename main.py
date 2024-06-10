@@ -70,7 +70,7 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num_to_trk):
     for seq_name in seq_eval:
         
         seq_file = os.path.join(det_root, seq_name+'.txt')
-        seq_dets, flag, frame_det_idx = load_detection(seq_file, format=cfg.label_format, cat=cat) 	# load detection
+        seq_dets, flag, frame_det_idx = load_detection(seq_file, format=cfg.dataset, cat=cat) 	# load detection
 
         # create folders for saving
         eval_file_dict, save_trk_dir, affinity_dir, affinity_vis = \
@@ -141,7 +141,7 @@ def main_per_cat(cfg, cat, log, ID_start, frame_num_to_trk):
                 save_trk_file = open(save_trk_file, 'w')
                 for result_tmp in results[hypo]:				# N x 15
                     save_results(result_tmp, save_trk_file, eval_file_dict[hypo], \
-                        det_id2str, frame, cfg.score_threshold, format=cfg.dataset)
+                        det_id2str, frame, cfg.score_threshold, format=cfg.label_format)
                 save_trk_file.close()
 
             total_frames += 1
