@@ -6,8 +6,10 @@ from AB3DMOT_libs.box import Box3D
 from Philly_libs.NDT import NDT_voxelize
 
 class TrackBuffer():
-    def __init__(self, info, ID, bbox3D, voxel, pcd, time_stamp, kf_initial_speed=30, NDT_cfg=None):
+    def __init__(self, info, ID, bbox3D, voxel, pcd, time_stamp, kf_initial_speed=30, NDT_cfg=None, label_format="kitti"):
         self.initial_speed = kf_initial_speed*(1000/36000)
+        self.label_format=label_format # for rot in initial speed
+        
 
         self.id = ID
         self.info = info
@@ -22,7 +24,6 @@ class TrackBuffer():
         self.status = []
         self.output_buf = []
         self.output_buf_time = []
-        
         
         self.pcd_of_track = None
         self.NDT_of_track = None
@@ -102,7 +103,11 @@ class TrackBuffer():
         # initialize data
         self.kf.x[:7] = bbox3D.reshape((7, 1))
         
-        rot=-bbox3D[3] # kitti的rot是多一個負號
+        if(self.label_format=="kitti"):
+            rot=-bbox3D[3] # kitti的rot是多一個負號
+        else:
+            rot=bbox3D[3]
+            
         self.kf.x[-3] = np.cos(rot)*self.initial_speed
         self.kf.x[-1] = np.sin(rot)*self.initial_speed
 

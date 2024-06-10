@@ -53,7 +53,7 @@ class AB3DMOT(object):
             
         self.print_param()
   
-        self.label_format = cfg.label_format        
+        self.label_format = cfg.label_format.lower()        
         self.label_coord = cfg.label_coord
         self.buffer_size = cfg.buffer_size            
         self.history = cfg.history
@@ -300,7 +300,7 @@ class AB3DMOT(object):
         new_id_list = list()					# new ID generated for unmatched detections
         for i in unmatched_dets:        			# a scalar of index
             bbox3d = Box3D.bbox2array(dets[i])
-            trk = TrackBuffer(info[i, :], self.ID_count[0], bbox3d, voxels[i], pcd[i], frame, kf_initial_speed=self.kf_initial_speed, NDT_cfg = self.NDT_cfg)
+            trk = TrackBuffer(info[i, :], self.ID_count[0], bbox3d, voxels[i], pcd[i], frame, kf_initial_speed=self.kf_initial_speed, NDT_cfg = self.NDT_cfg, label_format=self.label_format)
             self.track_buf.append(trk)
             new_id_list.append(trk.id)
             # print('track ID %s has been initialized due to new detection' % trk.id)
@@ -416,9 +416,11 @@ class AB3DMOT(object):
         trks = self.prediction(frame, history = self.history) 
         old_trks = trks
         # if(frame>=1):
-        #     print("last frame bbox",self.track_buf[0].bbox[-1].__str__())
-        #     print("predict",trks[0][0].__str__())            
-        #     print("speed",self.track_buf[0].kf_buffer[-1].x[-3:])
+        #     for ti in range(len(trks)):
+        #         print("id ",self.track_buf[ti].id)
+        #         print("last frame bbox ",self.track_buf[ti].bbox[-1].__str__())
+        #         print("predict ",trks[ti][0].__str__())            
+        #         print("speed ",self.track_buf[ti].kf_buffer[-1].x[-3:])              
         #     pdb.set_trace()
         if(self.NDT_flag):
             NDT_Voxels = []  
