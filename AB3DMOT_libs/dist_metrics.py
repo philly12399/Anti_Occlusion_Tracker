@@ -202,16 +202,6 @@ def dist_ground(bbox1, bbox2):
 
     return dist
 
-def dist_ground_wayside(bbox1, bbox2):
-    # Compute distance of bottom center in 3D space, NOT considering the difference in height
-
-    c1 = Box3D.bbox2array(bbox1)[[0, 1]]
-    c2 = Box3D.bbox2array(bbox2)[[0, 1]]
-    dist = np.linalg.norm(c1 - c2)
-
-    return dist
-
-
 def dist3d_bottom(bbox1, bbox2):
     # Compute distance of bottom center in 3D space, considering the difference in height / 2
 
