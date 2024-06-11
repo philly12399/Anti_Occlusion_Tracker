@@ -6,9 +6,9 @@ from AB3DMOT_libs.box import Box3D
 from Philly_libs.NDT import NDT_voxelize
 
 class TrackBuffer():
-    def __init__(self, info, ID, bbox3D, voxel, pcd, time_stamp, kf_initial_speed=30, NDT_cfg=None, label_format="kitti"):
+    def __init__(self, info, ID, bbox3D, voxel, pcd, time_stamp, kf_initial_speed=30, NDT_cfg=None):
         self.initial_speed = kf_initial_speed*(1000/36000)
-        self.label_format=label_format # for rot in initial speed
+        # self.label_format=label_format # for rot in initial speed
         
 
         self.id = ID
@@ -55,10 +55,10 @@ class TrackBuffer():
         if(self.NDT_updated == True):
             return
         mean_dim = np.mean(self.bbox,0)[-3:]     
-        if(self.label_format == "wayside"):
+        if(Box3D.label_format == "wayside"):
             mean_dim[0], mean_dim[1], mean_dim[2] = mean_dim[2], mean_dim[0], mean_dim[1] 
         mean_box = Box3D.array2bbox(np.append([0,0,0,0],mean_dim))#l,w,h
-        valid,invalid,allv = NDT_voxelize(self.pcd_of_track, mean_box, cfg = self.NDT_cfg, draw=True) #valid,invalid,all
+        valid,invalid,allv = NDT_voxelize(self.pcd_of_track, mean_box, cfg = self.NDT_cfg, draw=False) #valid,invalid,all
         if(valid==None):
             return
         self.NDT_of_track = valid
@@ -106,7 +106,7 @@ class TrackBuffer():
         # initialize data
         self.kf.x[:7] = bbox3D.reshape((7, 1))
         
-        if(self.label_format=="kitti"):
+        if(Box3D.label_format=="kitti"):
             rot=-bbox3D[3] # kitti的rot是多一個負號
         else:
             rot=bbox3D[3]

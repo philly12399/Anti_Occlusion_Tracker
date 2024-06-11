@@ -237,14 +237,17 @@ def data_association(dets, trks, NDT_Voxels, trk_buf, trk_mask, metric, threshol
     else: matches = np.concatenate(matches, axis=0)
     return matches, np.array(unmatched_dets), np.array(unmatched_trks), cost_bbox, aff_matrix, stage2_stat
 
-def compute_bbox_angle(det, trk,):
-    # compute the angle difference between two boxes
-    angle = angle_normalize(-np.arctan2((det.z-trk.z),(det.x-trk.x)))  #加負是因為kitti的roty定義是反的(逆時針是負)
-    
+def compute_vector_angle(a, b): 
+    # compute the angle of vector a->b
+    if(Box3D.label_format=='kitti'):
+        angle = angle_normalize(-np.arctan2((b.z-a.z),(b.x-a.x)))  #加負是因為kitti的roty定義是反的(逆時針是負)
+    elif(Box3D.label_format=='wayside'):
+        angle = angle_normalize(np.arctan2((b.z-a.z),(b.x-a.x)))  
+        
     return angle
 
 def compute_angle_aff(det, trk,): ##trk head(前進方向) , bbox angle(associate的連線), close enough
-    angle = compute_bbox_angle(det, trk)
+    angle = compute_vector_angle(trk,det)
     return abs(angle_normalize(angle)-angle_normalize(trk.ry))
 
 def angle_normalize(theta):

@@ -300,7 +300,7 @@ class AB3DMOT(object):
         new_id_list = list()					# new ID generated for unmatched detections
         for i in unmatched_dets:        			# a scalar of index
             bbox3d = Box3D.bbox2array(dets[i])
-            trk = TrackBuffer(info[i, :], self.ID_count[0], bbox3d, voxels[i], pcd[i], frame, kf_initial_speed=self.kf_initial_speed, NDT_cfg = self.NDT_cfg, label_format=self.label_format)
+            trk = TrackBuffer(info[i, :], self.ID_count[0], bbox3d, voxels[i], pcd[i], frame, kf_initial_speed=self.kf_initial_speed, NDT_cfg = self.NDT_cfg)
             self.track_buf.append(trk)
             new_id_list.append(trk.id)
             # print('track ID %s has been initialized due to new detection' % trk.id)
@@ -415,16 +415,18 @@ class AB3DMOT(object):
         # tracks propagation based on velocity
         trks = self.prediction(frame, history = self.history) 
         old_trks = trks
+        class DictToObj:
+            def __init__(self, dictionary):
+                for key, value in dictionary.items():
+                    setattr(self, key, value)
         # if(frame>=1):        
-        #     # pdb.set_trace()
-        #     for ti in range(len(self.track_buf)):
-        #         # print("id ",self.track_buf[ti].id)
-        #         # print("last frame bbox ",self.track_buf[ti].bbox[-1].__str__())
-        #         # print("predict ",trks[ti][0].__str__())            
-        #         # print("speed ",self.track_buf[ti].kf_buffer[-1].x[-3:])   
-        #         print(self.track_buf[ti].bbox[-1].__str__())  
-        #         self.track_buf[ti].update_NDT()
-        #     pdb.set_trace()
+            # for ti in range(len(self.track_buf)):
+            #     # print("id ",self.track_buf[ti].id)
+            #     # print("last frame bbox ",self.track_buf[ti].bbox[-1].__str__())
+            #     # print("predict ",trks[ti][0].__str__())            
+            #     # print("speed ",self.track_buf[ti].kf_buffer[-1].x[-3:])  
+            #     # print(self.track_buf[ti].bbox[-1].__str__())  
+            #     self.track_buf[ti].update_NDT()
             
         if(self.NDT_flag):
             NDT_Voxels = []  
@@ -462,7 +464,6 @@ class AB3DMOT(object):
             tb2=[self.track_buf[i] for i in unmatched_trks1]
 
             trk_mask_2 = []
-            self.stage2_param
             matched2, unmatched_dets2, unmatched_trks2, cost2, affi2, stage2_stat = data_association_philly(dets2, trks2, NDT_Voxels2, tb2, trk_mask_2, self.stage2_param['metric'], self.stage2_param['thres'], self.stage2_param['algm'], history = self.history, NDT_flag=self.NDT_flag, NDT_thres=self.NDT_thres,)
             
             #Merge stage1 and stage2, map unmatched id back
