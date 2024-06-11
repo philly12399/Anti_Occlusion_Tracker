@@ -16,7 +16,7 @@ class TrackBuffer():
         self.time_since_update = 0
         self.hits = 1  
   
-        self.bbox = [] #x,y,z,ry,l,w,h
+        self.bbox = [] #x,y,z,ry,l,w,h (l,w,h in camera)
         self.NDT_voxels = []
         self.time_stamp = []
         self.kf_buffer = []
@@ -54,8 +54,11 @@ class TrackBuffer():
     def update_NDT(self):
         if(self.NDT_updated == True):
             return
-        mean_box = Box3D.array2bbox(np.append([0,0,0,0],np.mean(self.bbox,0)[-3:]))
-        valid,invalid,allv = NDT_voxelize(self.pcd_of_track, mean_box, cfg = self.NDT_cfg) #valid,invalid,all
+        mean_dim = np.mean(self.bbox,0)[-3:]     
+        if(self.label_format == "wayside"):
+            mean_dim[0], mean_dim[1], mean_dim[2] = mean_dim[2], mean_dim[0], mean_dim[1] 
+        mean_box = Box3D.array2bbox(np.append([0,0,0,0],mean_dim))#l,w,h
+        valid,invalid,allv = NDT_voxelize(self.pcd_of_track, mean_box, cfg = self.NDT_cfg, draw=True) #valid,invalid,all
         if(valid==None):
             return
         self.NDT_of_track = valid

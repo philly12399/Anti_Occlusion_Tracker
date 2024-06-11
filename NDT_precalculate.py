@@ -98,6 +98,13 @@ def main_inner(cfg):
             det_idx = str(info['obj_det_idx']).zfill(4)
             class_str = info['obj']['obj_type'].lower()
             MT_outpath.append(os.path.join(NDT_cache_path, f"{frame_str}_{det_idx}_{class_str}.pkl"))
+            
+        # for i in range(3000):
+        #     print(MT_outpath[i])
+        #     v1,_,_=NDT_voxelize(MT_pcd[i],MT_dets[i],cfg.NDT_cfg,True)
+        # # draw_NDT_voxel(v1,random=False)
+        # exit()
+        
         assert len(MT_pcd) == len(MT_dets) 
         assert len(MT_dets) == len(MT_outpath)
         CHUNK=64

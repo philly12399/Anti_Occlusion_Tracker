@@ -415,13 +415,17 @@ class AB3DMOT(object):
         # tracks propagation based on velocity
         trks = self.prediction(frame, history = self.history) 
         old_trks = trks
-        # if(frame>=1):
-        #     for ti in range(len(trks)):
-        #         print("id ",self.track_buf[ti].id)
-        #         print("last frame bbox ",self.track_buf[ti].bbox[-1].__str__())
-        #         print("predict ",trks[ti][0].__str__())            
-        #         print("speed ",self.track_buf[ti].kf_buffer[-1].x[-3:])              
+        # if(frame>=1):        
+        #     # pdb.set_trace()
+        #     for ti in range(len(self.track_buf)):
+        #         # print("id ",self.track_buf[ti].id)
+        #         # print("last frame bbox ",self.track_buf[ti].bbox[-1].__str__())
+        #         # print("predict ",trks[ti][0].__str__())            
+        #         # print("speed ",self.track_buf[ti].kf_buffer[-1].x[-3:])   
+        #         print(self.track_buf[ti].bbox[-1].__str__())  
+        #         self.track_buf[ti].update_NDT()
         #     pdb.set_trace()
+            
         if(self.NDT_flag):
             NDT_Voxels = []  
             NDT_Voxels_PATH = []          

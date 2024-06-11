@@ -136,7 +136,7 @@ def test(track_root='./output_bytrackid/car_mark_all_rotxy'):
         break
         
 
-def NDT_voxelize(pcd, det, cfg=None): # 只用到det lwh
+def NDT_voxelize(pcd, det, cfg=None,draw=False): # 只用到det lwh
     TT=[time.time()]
     TT.append(time.time())
     if(pcd is None):
@@ -149,6 +149,15 @@ def NDT_voxelize(pcd, det, cfg=None): # 只用到det lwh
      
     box = NDT_Voxel(0,0,0,det.l,det.w,det.h)
     pcd = [p for p in pcd if in_bbox(p,box)]
+    # pdb.set_trace()
+    
+    if(draw):
+        box_dict = {
+            'x':0,'y': 0, 'z':0,'l':det.l,'w':det.w, 'h':det.h, 'roty':0
+        }
+        draw_pcd_and_bbox_v2(np.array(pcd),box_dict)
+        
+    # pdb.set_trace()
     origin = 0 #第一個voxel的中心在原點
     # origin = voxel_size/2 #第一個voxel中心在原點往右上平移voxelsize/2
     if(cfg.overlap):

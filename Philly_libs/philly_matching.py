@@ -6,6 +6,7 @@ from Philly_libs.NDT import NDT_score,draw_NDT_voxel
 import copy
 from AB3DMOT_libs.box import Box3D
 INVALID_VALUE=1e10
+
 def compute_bbox_affinity(dets, trks, metric, trk_mask=[]): #BIGGER BETTER
     # compute affinity matrix
     global INVALID_VALUE
@@ -31,6 +32,7 @@ def compute_bbox_affinity(dets, trks, metric, trk_mask=[]): #BIGGER BETTER
     return aff_matrix
 import pdb
 import time
+
 def multiframe_bbox_affinity(aff_history, history, weight):
     d, t = aff_history[0].shape
     aff_sum = np.zeros((d, t), dtype=np.float32)
@@ -235,13 +237,13 @@ def data_association(dets, trks, NDT_Voxels, trk_buf, trk_mask, metric, threshol
     else: matches = np.concatenate(matches, axis=0)
     return matches, np.array(unmatched_dets), np.array(unmatched_trks), cost_bbox, aff_matrix, stage2_stat
 
-def compute_bbox_angle(det, trk):
+def compute_bbox_angle(det, trk,):
     # compute the angle difference between two boxes
     angle = angle_normalize(-np.arctan2((det.z-trk.z),(det.x-trk.x)))  #加負是因為kitti的roty定義是反的(逆時針是負)
     
     return angle
 
-def compute_angle_aff(det, trk): ##trk head(前進方向) , bbox angle(associate的連線), close enough
+def compute_angle_aff(det, trk,): ##trk head(前進方向) , bbox angle(associate的連線), close enough
     angle = compute_bbox_angle(det, trk)
     return abs(angle_normalize(angle)-angle_normalize(trk.ry))
 

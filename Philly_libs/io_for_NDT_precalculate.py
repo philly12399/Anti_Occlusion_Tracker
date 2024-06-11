@@ -55,7 +55,7 @@ def get_frame_det(dets_all, format=""):
         # additional_info = np.concatenate((ori_array, other_array), axis=1) # ori,class,2dbox,confidence
         # get 3D box
         if(format.lower()=="wayside"):
-            dets = matched_dets[:, [12,11,10,13,14,15,16]]	
+            dets = matched_dets[:, [12,11,10,13,14,15,16]]	 #
         else:
             dets = matched_dets[:, [10,11,12,13,14,15,16]]		
         # dets_frame = {'dets': dets, 'info': additional_info}
