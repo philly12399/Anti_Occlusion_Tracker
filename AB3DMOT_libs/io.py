@@ -56,7 +56,7 @@ def get_frame_det(dets_all, frame, format=""):
         additional_info = np.concatenate((ori_array, other_array), axis=1) # ori,class,2dbox,confidence
         # get 3D box
         if(format.lower()=="wayside"):
-            dets = matched_dets[:, [12,11,10,13,14,15,16]]	
+            dets = matched_dets[:, [10,12,11,13,15,14,16]]	
         else:
             dets = matched_dets[:, [10,11,12,13,14,15,16]]		
         dets_frame = {'dets': dets, 'info': additional_info}
@@ -120,10 +120,8 @@ def save_results(res, save_trk_file, eval_file, det_id2str, frame, score_thresho
     # box3d in the format of h, w, l, x, y, z, theta in camera coordinate
     bbox3d_tmp, id_tmp, ori_tmp, type_tmp, bbox2d_tmp_trk, conf_tmp = \
         res[0:7], res[7], res[8], det_id2str[res[9]], res[10:14], res[14] 		
-    if(format == "Wayside"):
-        tmp = bbox3d_tmp[0]
-        bbox3d_tmp[0] = bbox3d_tmp[2]
-        bbox3d_tmp[2] = tmp
+    if(format.lower() == "wayside"):
+        bbox3d_tmp =  bbox3d_tmp[[0,2,1,3,5,4,6]]
 
     # save in detection format with track ID, can be used for dection evaluation and tracking visualization
     str_to_srite = '%s -1 -1 %f %f %f %f %f %f %f %f %f %f %f %f %f %d\n' % (type_tmp, ori_tmp,

@@ -37,7 +37,7 @@ def main_per_cat(cfg, cat, log, ID_start, seq_cfg=None):
             if(os.path.exists(det_root) == False): 
                 print(f"Didn't find det path {det_root}")           
                 assert False
-    subfolder, det_id2str, hw, _, data_root = get_subfolder_seq(cfg.dataset, cfg.split)
+    subfolder, det_id2str, hw, seq_eval, data_root = get_subfolder_seq(cfg.dataset, cfg.split)
     if(seq_cfg is not None): seq_eval = seq_cfg
     
   
@@ -140,11 +140,14 @@ def main(args):
     # categories of objects have the same ID. This allows visualization of all object categories together
     # without ID conflicting, Also use 1 (not 0) as start because MOT benchmark requires positive ID
     ID_start = 1	
-    cat = cfg.cat_list[0]						
-    if(cat.lower() == 'car'):
-        seq_eval = ['0001', '0002', '0005', '0007', '0008', '0009', '0011', '0018', '0019', '0020']    # val
-    elif(cat.lower() == 'cyclist'):
-        seq_eval = ['0000', '0005', '0013', '0015', '0016', '0019']    # val
+    seq_eval=None
+    if(cfg.dataset.lower()=="kitti"):
+        cat = cfg.cat_list[0]						
+        if(cat.lower() == 'car'):
+            seq_eval = ['0001', '0002', '0005', '0007', '0008', '0009', '0011', '0018', '0019', '0020']    # val
+        elif(cat.lower() == 'cyclist'):
+            seq_eval = ['0000', '0005', '0013', '0015', '0016', '0019']    # val
+    
     # run tracking for each category
     for cat in cfg.cat_list:
         ID_start = main_per_cat(cfg, cat, log, ID_start,seq_eval)
