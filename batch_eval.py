@@ -21,14 +21,15 @@ import pdb
     help="Name of config file .",
 )
 def eval(root,eval_config):
-    
-    for d in sorted(os.listdir(root)):
-        path1=os.path.join(root,d)
-        if os.path.isdir(os.path.join(path1,'label')):
-            print(f"Evaluate {path1}")
-            os.system(f"python3 ./scripts/KITTI/evaluate.py --config ./eval_configs/{eval_config} -e {path1}")
-        else:
-            continue
+    for r1 in sorted(os.listdir(root)):
+        r1 = os.path.join(root,r1)
+        for d in sorted(os.listdir(r1)):
+            path1=os.path.join(r1,d)
+            if os.path.isdir(os.path.join(path1,'label')):
+                print(f"Evaluate {path1}")
+                os.system(f"python3 ./scripts/KITTI/evaluate.py --config ./eval_configs/{eval_config} -e {path1} &")
+            else:
+                continue
     
 if __name__ == "__main__":
     eval()
