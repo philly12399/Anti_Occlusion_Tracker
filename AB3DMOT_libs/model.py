@@ -82,12 +82,12 @@ class AB3DMOT(object):
         self.debugger=[]
         
         self.global_cnt=0
-        self.two_stage=False
+        # self.two_stage=False
         self.two_stage=cfg.two_stage
-        self.stage2_param = cfg.base_param[cat.lower()] 
+        # self.stage2_param = cfg.base_param[cat.lower()] 
         if("stage2_param" in cfg):
             self.stage2_param = cfg.stage2_param[cat.lower()]
-        
+        # pdb.set_trace()
     def get_param(self, cfg, cat, param=None):
         # get parameters for each dataset
         if(param !=None):
@@ -415,10 +415,7 @@ class AB3DMOT(object):
         # tracks propagation based on velocity
         trks = self.prediction(frame, history = self.history) 
         old_trks = trks
-        class DictToObj:
-            def __init__(self, dictionary):
-                for key, value in dictionary.items():
-                    setattr(self, key, value)
+        
         # if(frame>=1):        
             # for ti in range(len(self.track_buf)):
             #     # print("id ",self.track_buf[ti].id)
