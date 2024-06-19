@@ -418,12 +418,12 @@ class AB3DMOT(object):
         
         # if(frame>=1):        
             # for ti in range(len(self.track_buf)):
-            #     # print("id ",self.track_buf[ti].id)
-            #     # print("last frame bbox ",self.track_buf[ti].bbox[-1].__str__())
-            #     # print("predict ",trks[ti][0].__str__())            
-            #     # print("speed ",self.track_buf[ti].kf_buffer[-1].x[-3:])  
-            #     # print(self.track_buf[ti].bbox[-1].__str__())  
-            #     self.track_buf[ti].update_NDT()
+                # print("id ",self.track_buf[ti].id)
+                # print("last frame bbox ",self.track_buf[ti].bbox[-1].__str__())
+                # print("predict ",trks[ti][0].__str__())            
+                # print("speed ",self.track_buf[ti].kf_buffer[-1].x[-3:])  
+                # print(self.track_buf[ti].bbox[-1].__str__())  
+                # self.track_buf[ti].update_NDT()
             
         if(self.NDT_flag):
             NDT_Voxels = []  
@@ -436,7 +436,7 @@ class AB3DMOT(object):
                 NDT_Voxels.append(NDTV)
                 # if(NDTV!=None):
                 #     print(cache_name)                    
-                #     draw_NDT_voxel(NDTV,random=False)        
+                #     draw_NDT_voxel(NDTV,random=False,drawbox=True)        
         else:
             NDT_Voxels = [[] for i in range(len(dets))]   
             NDT_Voxels_PATH = [[] for i in range(len(dets))]

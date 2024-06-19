@@ -45,14 +45,17 @@ def make_bbox(box):
     # b.center = [0,0,0]    
     b.center = [box['x'],box['y'],box['z']]    
     b.extent = [box['l'],box['w'],box['h']]
+    if 'roty' not in box:
+        box['roty'] = 0
     R = o3d.geometry.OrientedBoundingBox.get_rotation_matrix_from_xyz((0, 0,box['roty']))
     b.rotate(R, b.center)
     return b
 
+import pdb
 def draw_all(l=[]):
     vis = o3d.visualization.Visualizer()
     vis.create_window()
-    for i in l:
+    for i in l:        
         vis.add_geometry(i)
     vis.get_render_option().background_color = np.asarray([0, 0, 0]) # 設置一些渲染屬性
     vis.run()

@@ -314,7 +314,24 @@ class NDT_Voxel:
         return np.sign([p[0]-self.x,p[1]-self.y,p[2]-self.z])
 
 
-def draw_NDT_voxel(vs, random=True,NUM_SAMPLES=100):
+def draw_NDT_voxel(vs, random=True,NUM_SAMPLES=100,drawbox=False):
+    if(drawbox):
+        pts = []
+        box=[]
+        for v in vs:
+            pts.extend(v.pts.tolist())
+            bb=make_bbox({
+                'x':v.x,'y':v.y,'z':v.z,'l':v.l,'w':v.w,'h':v.h
+            })
+            box.append(bb)
+            # draw_all(box)
+
+        pts = make_pcd(np.array(pts))
+        # draw_pcd(pts)
+        box.append(pts)
+        draw_all(box)
+        return
+    
     if(random):
         random_sample_pts = []
         for v in vs:
@@ -328,4 +345,5 @@ def draw_NDT_voxel(vs, random=True,NUM_SAMPLES=100):
             pts.extend(v.pts.tolist())
         pts = np.array(pts)    
         draw_pcd(pts)
+    
     return 
