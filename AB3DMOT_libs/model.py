@@ -48,7 +48,7 @@ class AB3DMOT(object):
         else:
             print('Use config file param')
             assert cat.lower() in cfg.base_param, f"no param of class {cat.lower()}"
-            param=cfg.base_param[cat.lower()]            
+            param=copy.deepcopy(cfg.base_param[cat.lower()])
             self.get_param(cfg, cat, param)
             
         self.print_param()
@@ -86,8 +86,10 @@ class AB3DMOT(object):
         self.two_stage=cfg.two_stage
         # self.stage2_param = cfg.base_param[cat.lower()] 
         if("stage2_param" in cfg):
-            self.stage2_param = cfg.stage2_param[cat.lower()]
-        # pdb.set_trace()
+            self.stage2_param = copy.deepcopy(cfg.stage2_param[cat.lower()])
+            if self.stage2_param['metric'] in ['dist_3d', 'dist_2d', 'm_dis']: 
+                if(self.stage2_param['thres'] >=0 ):
+                    self.stage2_param['thres']*= -1
     def get_param(self, cfg, cat, param=None):
         # get parameters for each dataset
         if(param !=None):
