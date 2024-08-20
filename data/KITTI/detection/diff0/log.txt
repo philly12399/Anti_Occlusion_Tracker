@@ -1,0 +1,25 @@
+Difficulty: 0
+With      car args OCC_FILTER:            {},  BD_BUF:   0, DROP_RATE:     0, DropMode:   seq drop
+With  cyclist args OCC_FILTER:            {},  BD_BUF:   0, DROP_RATE:     0, DropMode:   seq drop
+0000.txt: Filt     0 /   535      car;     0 /   154  cyclist;
+0001.txt: Filt     0 /  2898      car;     0 /     0  cyclist;
+0002.txt: Filt     0 /  1226      car;     0 /    75  cyclist;
+0003.txt: Filt     0 /   388      car;     0 /     0  cyclist;
+0004.txt: Filt     0 /   937      car;     0 /    60  cyclist;
+0005.txt: Filt     0 /  1337      car;     0 /   139  cyclist;
+0006.txt: Filt     0 /   762      car;     0 /     0  cyclist;
+0007.txt: Filt     0 /  2546      car;     0 /     0  cyclist;
+0008.txt: Filt     0 /  1369      car;     0 /     0  cyclist;
+0009.txt: Filt     0 /  3747      car;     0 /     0  cyclist;
+0010.txt: Filt     0 /   698      car;     0 /    14  cyclist;
+0011.txt: Filt     0 /  3587      car;     0 /     0  cyclist;
+0012.txt: Filt     0 /   144      car;     0 /    41  cyclist;
+0013.txt: Filt     0 /   124      car;     0 /   237  cyclist;
+0014.txt: Filt     0 /   527      car;     0 /     0  cyclist;
+0015.txt: Filt     0 /   899      car;     0 /   537  cyclist;
+0016.txt: Filt     0 /   836      car;     0 /   272  cyclist;
+0017.txt: Filt     0 /     0      car;     0 /   101  cyclist;
+0018.txt: Filt     0 /  1413      car;     0 /     0  cyclist;
+0019.txt: Filt     0 /  1413      car;     0 /   308  cyclist;
+0020.txt: Filt     0 /  6404      car;     0 /     0  cyclist;
+0021.txt: Filt     0 /  3200      car;     0 /   762  cyclist;
