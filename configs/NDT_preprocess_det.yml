@@ -1,0 +1,34 @@
+##ONLY FOR NDT PREPROCESS
+# ------------------- General Options -------------------------
+description                  : AB3DMOT
+seed                         : 0
+
+# --------------- main.py
+save_root                    : ./tracker_exp_local/KITTI/diff0_NDTtest
+dataset                      : KITTI      # KITTI
+split                        : val        # val, test
+det_name                     : point_rcnn  # name of the detector [pointrcnn, pvrcnn]/ gt
+cat_list                     : ['car'] #['Car', 'Pedestrian', 'Cyclist']
+
+score_threshold              : -10000     # filter out tracklet with low confidence if necessary, default no filtering here but do it in trk_conf_threshold.py
+num_hypo                     : 1          # >1 to allow multi-hypothesis tracking
+
+# --------------- model.py
+ego_com                      : True      # turn on only slightly reduce speed but increase a lot for performance
+vis                          : false       # only for debug or visualization purpose, will significantly reduce speed
+affi_pro                     : false
+#---------------- addition
+label_format                 : Kitti      # Kitti, Waymo, nuscenes, AB3DMOT
+label_coord                  : camera       # lidar or camera
+buffer_size                  : 10
+history                      : 1
+# ------------------NDT
+NDT_flag                     : True
+pcd_db_root                  : "./data/KITTI/dense_db/point_rcnn_0/dense_128_all"
+NDT_cfg                      : {'voxel_size': 0.5, 'overlap': True, 'min_pts_voxel': 5, 'noise': 0.05}
+NDT_cache_root               : "./data/KITTI/NDT_pkl/det/"
+NDT_cache_name               : "cache" #path for load/write
+#---------------
+seq_eval                     : [1,6,8,10,12,13,14,15,16,18,19] #[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20] #sequence to track, [] means by default
+
+

@@ -1,0 +1,20 @@
+##EVALUATION CONFIG
+# ------------------- Dataset Name -------------------------
+description                  : KITTI
+# ------------------- Path Options -------------------------
+gt_path                      : "/home/philly12399/thesis/AB3DMOT/scripts/KITTI/label/" 
+trk_path                     : "/home/philly12399/thesis/AB3DMOT/tracker_exp_local/0815_sota_pointrcnn/label"
+out_path                     : "/home/philly12399/thesis/AB3DMOT/tracker_exp_local/0815_sota_pointrcnn/"
+calib_path                   : "/home/philly12399/philly_ssd/KITTI_tracking/training/calib/" 
+exp_name                     : eval
+# ------------------- Eval Options -------------------------
+iou                          : 3D
+threshold                    : [0.25,0.5]
+class_name                   : ['car']
+gt_format                    : Kitti
+trk_format                   : Kitti
+num_hypo                     : 1
+max_occlusion                : 4
+max_truncation               : 2 #0,1,2
+eval_seq                     : [1,6,8,10,12,13,14,15,16,18,19] #[1,2,5,7,8,9,11,18,19,20] 
+fov_filter                   : False

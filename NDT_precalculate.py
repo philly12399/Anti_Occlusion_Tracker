@@ -33,7 +33,8 @@ def process_dets(dets):
             det_tmp = Box3D.array2bbox_raw(det)
             dets_new.append(det_tmp)
         return dets_new
-    
+
+import pdb    
 def main_inner(cfg):
     # get data-cat-split specific path
     # print(cfg)
@@ -78,7 +79,6 @@ def main_inner(cfg):
         os.system(f"mkdir -p {NDT_cache_path}")
         if not flag:    continue  # no detection        
         ##Pcd info
-        
         pcd_info_seq_2d = pcd_info_seq_preprocess(pcd_info[seq_name], pcd_db, len(frame_det_idx), frame_det_idx)
         dets_frame = process_dets(get_frame_det(seq_dets, format=format))
         
@@ -131,12 +131,12 @@ def main_inner(cfg):
                     ## Update result for  det/trk
                     for i in range(len(chunkdata)):
                         RESULTS[ci].append((result[i],chunkdata[i][2]))
-        
+        end=time.time()       
+        print(f"Writing NDT cache file...")
         for r1 in RESULTS:
             for r2 in r1:
                 with open(r2[1], 'wb') as file:
                     pickle.dump(r2[0], file)
-        end=time.time()       
         with open(os.path.join(cfg.NDT_cache_path, "log.txt"), 'a') as file:
             objnum=len(MT_pcd)
             t1=round(end-start,1)
