@@ -90,6 +90,10 @@ class AB3DMOT(object):
             if self.stage2_param['metric'] in ['dist_3d', 'dist_2d', 'm_dis']: 
                 if(self.stage2_param['thres'] >=0 ):
                     self.stage2_param['thres']*= -1
+        if("conf_thres" in cfg):
+            self.conf_thres= cfg.conf_thres
+        else:
+            self.conf_thres=-9999
     def get_param(self, cfg, cat, param=None):
         # get parameters for each dataset
         if(param !=None):
@@ -342,8 +346,12 @@ class AB3DMOT(object):
             num_trks -= 1
 
             # deadth, remove dead tracklet
-            if (trk.time_since_update >= self.max_age): 
+            #remove begin track
+            if(trk.hits < self.min_hits and self.frame_count > self.min_hits and trk.match == False ):
                 self.track_buf.pop(num_trks)
+            elif (trk.time_since_update >= self.max_age): 
+                self.track_buf.pop(num_trks)
+            
         return results
     
     def output_interpolate(self, frame): #death
@@ -393,8 +401,17 @@ class AB3DMOT(object):
 
         NOTE: The number of objects returned may differ from the number of detections provided.
         """
+        #Filter low confidence detection(dets_all,pcd,det_idx)
+        conf_flag = dets_all['info'][:,6] >= self.conf_thres
+        for i in reversed(range(len(conf_flag))):
+            if(not conf_flag[i]):
+                dets_all['dets'] = np.delete(dets_all['dets'],i,0)
+                dets_all['info'] = np.delete(dets_all['info'],i,0)                
+                det_idx.pop(i)
+                if(self.NDT_flag):
+                    pcd.pop(i)
+        
         dets, info = dets_all['dets'], dets_all['info']         # dets: N x 7, float numpy array
-    
         if self.debug_id: print('\nframe is %s' % frame)
         # logging
         print_str = '\n\n*****************************************\n\nprocessing seq_name/frame %s/%d' % (seq_name, frame)
