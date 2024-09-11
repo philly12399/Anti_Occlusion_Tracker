@@ -115,7 +115,7 @@ if __name__ == '__main__':
 	file_path = os.path.dirname(os.path.realpath(__file__))
 	# root_dir = os.path.join(file_path, args.result_dir)
 	data_dir = exp
-	save_dir = exp+'_thres'; mkdir_if_missing(save_dir)
+	save_dir = exp+'_post_thres'; mkdir_if_missing(save_dir)
 
 	# run thresholding
 	conf_thresholding(data_dir, save_dir, thres_dict)

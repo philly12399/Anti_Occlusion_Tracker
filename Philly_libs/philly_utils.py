@@ -16,7 +16,7 @@ def pcd_info_seq_preprocess(pcd_info, pcd_db_seq_root, frame_num, frame_det_idx)
             continue
         pp['mae_dense_path'] = os.path.join(pcd_db_seq_root, pp['mae_dense_path'])	
         frame_seq.append(pp)
-  
+    
     for i in range(frame_num):
         assert len(pcd_info_seq[i]) == len(frame_det_idx[i])
         for j in range(len(frame_det_idx[i])):

@@ -3,6 +3,7 @@ from  Philly_libs.philly_io import *
 ################## loading
 def load_detection(file, format="",cat = []):
     # load from raw file 
+
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         if(format.lower()=="wayside"): str2id = {'car':1,'cyclist':2}
@@ -38,7 +39,6 @@ def load_detection(file, format="",cat = []):
                 frame_cnt[frame]+=1                    
             dets = np.array(l)
         else: assert False
-  
     if len(dets.shape) == 1: dets = np.expand_dims(dets, axis=0) 	
     if dets.shape[1] == 0:		# if no detection in a sequence
         return [], False,None
