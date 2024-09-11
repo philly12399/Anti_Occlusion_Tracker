@@ -10,7 +10,7 @@ split                        : val        # val, test
 det_name                     : point_rcnn  # name of the detector [pointrcnn, pvrcnn]/ gt
 cat_list                     : ['car'] #['Car', 'Pedestrian', 'Cyclist']
 #--------------- SEQ
-seq_eval                     : [1,6,8,10,12,13,14,15,16,18,19] #[1,2,5,7,8,9,11,18,19,20] #sequence to track, [] means by default
+seq_eval                     : [1,2,5,7,8,9,11,18,19,20] #[1,6,8,10,12,13,14,15,16,18,19] #[1,2,5,7,8,9,11,18,19,20] #sequence to track, [] means by default
 # --------------- model.py
 ego_com                      : True      # turn on only slightly reduce speed but increase a lot for performance
 
@@ -28,7 +28,7 @@ NDT_flag                     : True
 pcd_db_root                  : "./data/KITTI/dense_db/point_rcnn_0/dense_128_all/"
 NDT_cfg                      : {'voxel_size': 0.5, 'overlap': True, 'min_pts_voxel': 5, 'noise': 0.05}
 NDT_cache_root               : "./data/KITTI/NDT_pkl/det/"
-NDT_cache_name               : "point_rcnn_0_cache-128" #path for load/write
+NDT_cache_name               : "point_rcnn_0_cache-128_all" #path for load/write
 
 #---------------AB3DMOT base
 use_default                  : False

@@ -79,7 +79,7 @@ def get_threshold(dataset, det_name):
                     'Bus': 0.430000, 'Motorcycle': 0.368667, 'Bicycle': 0.394146}
         else: assert False, 'error, detection method not supported for getting threshold' % det_name
     elif dataset == 'Wayside':
-        return {'Car': 0,'Cyclist': 0}
+        return {'Car': 3.240738, 'Cyclist': 3.645319}
     else: assert False, 'error, dataset %s not supported for getting threshold' % dataset
 
 def initialize(cfg, data_root, save_dir, subfolder, seq_name, cat, ID_start, hw, log_file):
