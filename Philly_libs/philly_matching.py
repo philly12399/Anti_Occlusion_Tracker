@@ -2,7 +2,7 @@ import numpy as np
 from numba import jit
 from scipy.optimize import linear_sum_assignment
 from AB3DMOT_libs.dist_metrics import iou, dist3d, dist_ground, m_distance
-from Philly_libs.NDT import NDT_score,draw_NDT_voxel
+from Philly_libs.NDT import NDT_score
 import copy
 from AB3DMOT_libs.box import Box3D
 INVALID_VALUE=1e10

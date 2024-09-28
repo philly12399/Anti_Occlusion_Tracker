@@ -114,3 +114,8 @@ def interpolate_bbox(box1,box2,start,end,id,info, output_kf_cls):
 
 def interpolate(a,b,t):
     return [a + i * (b - a) / (t - 1) for i in range(t)] 
+
+class DictToObj:
+    def __init__(self, dictionary):
+        for key, value in dictionary.items():
+            setattr(self, key, value)

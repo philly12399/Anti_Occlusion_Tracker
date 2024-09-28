@@ -4,6 +4,11 @@ def read_pkl(path):
     with open(path, 'rb') as file:
         data = pickle.load(file)
         return data
+    
+def write_pkl(data, outpath):  
+    with open(outpath, 'wb') as file:
+        pickle.dump(data, file)
+    return
 
 def read_points_from_bin(bin_file, unique=False):
     gt_points = np.fromfile(bin_file, dtype=np.float32).reshape(-1, 4)[:,:3]

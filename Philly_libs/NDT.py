@@ -160,7 +160,7 @@ def NDT_voxelize(pcd, det, cfg=None,draw=False): # 只用到det lwh
     # pdb.set_trace()
     origin = 0 #第一個voxel的中心在原點
     # origin = voxel_size/2 #第一個voxel中心在原點往右上平移voxelsize/2
-    if(cfg.overlap):
+    if(overlap):
         stride = voxel_size/2
         scalar=8
     else:
@@ -192,7 +192,7 @@ def NDT_voxelize(pcd, det, cfg=None,draw=False): # 只用到det lwh
         
         i,j,k = int((p[0]+l/2+ (voxel_size/2-origin))/(stride)), int((p[1]+w/2+ (voxel_size/2-origin))/(stride)), int((p[2]+h/2+ (voxel_size/2-origin))/(stride))   
         idx0 = i*wn*hn + j*hn + k
-        if(not cfg.overlap):
+        if(not overlap):
             if(in_bbox(p,voxels[idx0])):
                 voxels[idx0].pts.append(p)
                 incnt+=1
@@ -227,7 +227,7 @@ def NDT_voxelize(pcd, det, cfg=None,draw=False): # 只用到det lwh
 
 
 def NDT_score(a, b, mixed_pdf=True): #-sum(pdf)
-    
+    # pdb.set_trace()
     a_array = np.array([(va.x, va.y, va.z) for va in a])
     b_array = np.array([(vb.x, vb.y, vb.z) for vb in b])
     pairs = []
