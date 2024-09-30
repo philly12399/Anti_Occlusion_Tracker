@@ -26,6 +26,7 @@ class TrackBuffer():
         self.output_buf_time = []
         
         self.pcd_of_track = None
+        self.pcd_of_track_all=None
         self.NDT_of_track = None
         self.NDT_updated = False
         self.NDT_cfg = NDT_cfg
@@ -45,7 +46,7 @@ class TrackBuffer():
         self.match = True
 
         if(pcd is not None):
-            self.pcd_of_track = POT_append_downsample(self.pcd_of_track, pcd)
+            self.pcd_of_track_all, self.pcd_of_track = POT_append_downsample(self.pcd_of_track_all,pcd)
             self.NDT_updated = False # pcd update, so NDT need recalculate
             # if(self.id == 3):
             # 	print(time_stamp,self.id)
@@ -124,11 +125,15 @@ def KF_predict(kf,time=1):
     # new_kf.predict()
     return new_kf
         
-def POT_append_downsample(old_pcds, pcd, alpha=0.6):
-    if(old_pcds is None):
-        old_pcds = pcd
-    else:			
-        old_pcds = random_drop(old_pcds, alpha)
-        old_pcds = np.row_stack((old_pcds,pcd))	
-        old_pcds = old_pcds[random_sample(len(old_pcds),4096)]
-    return old_pcds
+def POT_append_downsample(pcd_all, pcd):
+    if(pcd_all is None):
+        pcd_all = pcd
+    else:
+        #OLD METHOD			
+        # old_pcds = random_drop(old_pcds, alpha)
+        # old_pcds = np.row_stack((old_pcds,pcd))	
+        # old_pcds = old_pcds[random_sample(len(old_pcds),4096)]
+        #NEW METHOD
+        pcd_all = np.row_stack((pcd_all,pcd))	
+        pcd_sample = pcd_all[random_sample(len(pcd_all),4096)]
+    return pcd_all,pcd_sample

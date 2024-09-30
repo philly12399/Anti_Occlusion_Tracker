@@ -10,6 +10,12 @@ def write_pkl(data, outpath):
         pickle.dump(data, file)
     return
 
+def pkl_to_txt(path,out):
+    data = read_pkl(path)
+    f=open(out,'w')
+    f.write(str(data))
+    return data
+
 def read_points_from_bin(bin_file, unique=False):
     gt_points = np.fromfile(bin_file, dtype=np.float32).reshape(-1, 4)[:,:3]
     if(unique):

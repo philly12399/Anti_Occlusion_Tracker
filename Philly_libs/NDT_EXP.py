@@ -129,20 +129,19 @@ def merged_pcd_test(tracks_obj, EXP_PATH):
             bbox['x'],bbox['y'],bbox['z'],bbox['roty']=0,0,0,0
             bbox_obj=DictToObj(bbox)
             sampled_dense = merged_dense[np.random.choice(merged_dense.shape[0], RANDOM_SAMPLE, replace=False)]
-            sampled_dense.tofile(os.path.join(merged_track_exp_path,f"{trackid}_SAMPLE.pkl"))
             dense_NDT = NDT_voxelize(sampled_dense,bbox_obj)[0]
             io_utils.write_pkl(dense_NDT,os.path.join(merged_track_exp_path,f"{trackid}_NDT.pkl"))    
             continue
     return
 
-def NDT_exp_diff(tracks_obj, EXP_PATH):
+def NDT_exp_frame_to_merge_diff(tracks_obj, EXP_PATH):
     cls=tracks_obj.keys()
     cls=['car']
     RANDOM_SAMPLE=4096
     avg_score_same={}
     
     NDT_OF_TRACK={}
-    SAMPLE_PCD_OF_TRACK={}
+    NDT_FRAME_OF_TRACK={}
     INFO_OF_TRACK={}
     none_trk=[]
     for c in cls:
@@ -150,7 +149,9 @@ def NDT_exp_diff(tracks_obj, EXP_PATH):
         trackid_exp_path=os.path.join(EXP_PATH,c)
         merged_track_exp_path=os.path.join(EXP_PATH,f"{c}_all")      
         merged_member=io_utils.read_pkl(os.path.join(merged_track_exp_path,"merged_member.pkl"))
+        cnt=0
         for trackid in merged_member:
+            # if(cnt>5): break
             merged_idx = merged_member[trackid]            
             if(len(merged_idx)<=0):
                 none_trk.append(trackid)
@@ -158,9 +159,16 @@ def NDT_exp_diff(tracks_obj, EXP_PATH):
             track = trks[int(trackid)]
             dense_NDT = io_utils.read_pkl(os.path.join(merged_track_exp_path,f"{trackid}_NDT.pkl"))   
             # pdb.set_trace()
+            frames=[]
+            for idx in merged_idx:
+                frame = io_utils.read_pkl(os.path.join(trackid_exp_path,f"{trackid}_{str(idx).zfill(4)}.pkl")) 
+                frames.append(frame)
+                
             NDT_OF_TRACK[trackid]=dense_NDT 
-            SAMPLE_PCD_OF_TRACK[trackid]=dense_NDT
+            NDT_FRAME_OF_TRACK[trackid]=frames
             INFO_OF_TRACK[trackid]=track
+            cnt+=1
+            
             continue
         
     t_list=list(merged_member.keys())
@@ -169,23 +177,36 @@ def NDT_exp_diff(tracks_obj, EXP_PATH):
     # t_list=t_list[:5]
     score_map={}
     avg_score_diff={}
+    avg_score_same={}
     for trackid_i in t_list:
         score_map[trackid_i]={}
         total_score=0
         print(f"track:{trackid_i}")
         for trackid_j in t_list:
-            score=NDT_score(SAMPLE_PCD_OF_TRACK[trackid_i],NDT_OF_TRACK[trackid_j])
+            score=0
+            for frame in NDT_FRAME_OF_TRACK[trackid_i]:
+                score+=NDT_score(frame,NDT_OF_TRACK[trackid_j])
+            score/=len(NDT_FRAME_OF_TRACK[trackid_i])
             if(trackid_i!=trackid_j):
                 total_score+=score
             score_map[trackid_i][trackid_j]=score
-        avg_score_diff[trackid_i]=total_score/(len(t_list)-1)
+        avg_score_diff[trackid_i] = total_score/(len(t_list)-1)
+        avg_score_same[trackid_i] = score_map[trackid_i][trackid_i]
+    
     print(avg_score_diff)
+    print('==================================')
+    print(avg_score_same)
+    print('==================================')
     print(score_map)
-    io_utils.write_pkl(avg_score_diff,os.path.join(merged_track_exp_path,"avg_score_diff.pkl"))
-    io_utils.write_pkl(score_map,os.path.join(merged_track_exp_path,"map_score_diff.pkl"))
+    
+    analys_path=os.path.join(EXP_PATH,"analysis")      
+    
+    io_utils.write_pkl(avg_score_diff,os.path.join(analys_path,"avg_frame_merge_diff.pkl"))
+    io_utils.write_pkl(avg_score_same,os.path.join(analys_path,"avg_frame_merge_same.pkl"))
+    io_utils.write_pkl(score_map,os.path.join(analys_path,"map_frame_merge_score.pkl"))
     return
 
-def NDT_exp_same(tracks_obj, EXP_PATH, draw=False):
+def NDT_exp_frame_to_merge_same(tracks_obj, EXP_PATH, draw=False):#deprcate
     cls=tracks_obj.keys()
     cls=['car']
     RANDOM_SAMPLE=4096
@@ -230,12 +251,72 @@ def NDT_exp_same(tracks_obj, EXP_PATH, draw=False):
             print(f"{trackid} to {tar} track ,avg {avg}")
             break
         print(avg_score_same)
-        # io_utils.write_pkl(avg_score_same,os.path.join(merged_track_exp_path,"avg_score_same.pkl"))
+        io_utils.write_pkl(avg_score_same,os.path.join(merged_track_exp_path,"avg_score_same.pkl"))
+    return
+
+def NDT_exp_merge_to_merge(tracks_obj, EXP_PATH):
+    cls=tracks_obj.keys()
+    cls=['car']
+    RANDOM_SAMPLE=4096
+    avg_score_same={}
+    
+    NDT_OF_TRACK={}
+    SAMPLE_PCD_OF_TRACK={}
+    INFO_OF_TRACK={}
+    none_trk=[]
+    for c in cls:
+        trks=tracks_obj[c]
+        trackid_exp_path=os.path.join(EXP_PATH,c)
+        merged_track_exp_path=os.path.join(EXP_PATH,f"{c}_all")      
+        merged_member=io_utils.read_pkl(os.path.join(merged_track_exp_path,"merged_member.pkl"))
+        for trackid in merged_member:
+            merged_idx = merged_member[trackid]            
+            if(len(merged_idx)<=0):
+                none_trk.append(trackid)
+                continue
+            track = trks[int(trackid)]
+            dense_NDT = io_utils.read_pkl(os.path.join(merged_track_exp_path,f"{trackid}_NDT.pkl"))   
+            # pdb.set_trace()
+            NDT_OF_TRACK[trackid]=dense_NDT 
+            SAMPLE_PCD_OF_TRACK[trackid]=dense_NDT
+            INFO_OF_TRACK[trackid]=track
+            continue
+        
+    t_list=list(merged_member.keys())
+    for nt in none_trk:
+        t_list.remove(nt)
+    # t_list=t_list[:5]
+    score_map={}
+    avg_score_diff={}
+    avg_score_same={}
+    
+    for trackid_i in t_list:
+        score_map[trackid_i]={}
+        total_score=0
+        print(f"track:{trackid_i}")
+        for trackid_j in t_list:
+            score=NDT_score(SAMPLE_PCD_OF_TRACK[trackid_i],NDT_OF_TRACK[trackid_j])
+            if(trackid_i!=trackid_j):
+                total_score+=score
+            score_map[trackid_i][trackid_j]=score
+        avg_score_diff[trackid_i]=total_score/(len(t_list)-1)
+        avg_score_same[trackid_i]=score_map[trackid_i][trackid_i]
+    print(avg_score_diff)
+    print('==================================')
+    print(avg_score_same)
+    print('==================================')
+    print(score_map)
+    
+    analys_path=os.path.join(EXP_PATH,"analysis")      
+    io_utils.write_pkl(avg_score_diff,os.path.join(analys_path,"avg_merge_merge_diff.pkl"))
+    io_utils.write_pkl(avg_score_same,os.path.join(analys_path,"avg_merge_merge_same.pkl"))
+    io_utils.write_pkl(score_map,os.path.join(analys_path,"map_merge_merge_score.pkl"))
     return
 
 def NDT_filter(x):
     return x['valid'] and x['obj']['occlusion']<=1
 
+    
 if __name__ == '__main__':
     seq=21
     seq = str(seq).zfill(4)
@@ -264,6 +345,9 @@ if __name__ == '__main__':
     # 把原本的NDT cache照trackid分類
     # get_NDT_by_trackid(tracks_obj,root_dense,NDT_cache_path,EXP_PATH)
     # merge_NDT_of_track(tracks_obj,root_dense,EXP_PATH)
-    # NDT_exp_diff(tracks_obj,EXP_PATH)
-    NDT_exp_same(tracks_obj,EXP_PATH)
+    # NDT_exp_merge_to_merge(tracks_obj,EXP_PATH)
+    # NDT_exp_frame_to_merge(tracks_obj,EXP_PATH)
     
+    # analys="/home/philly12399/philly_ssd/NDT_EXP/0021/analysis/"
+    # p1=os.path.join(analys,"map_frame_merge_score.pkl")
+    # p2=os.path.join(analys,"map_frame_merge_score.txt")
