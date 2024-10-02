@@ -53,7 +53,7 @@ def density_graph(avg_diff,avg_same,mode,norm=True):
 import plotly.express as px
 import pandas as pd
 
-def box_graph(avg_diff,avg_same,mode,norm=False): 
+def violin_graph(avg_diff,avg_same,mode,norm=False): 
     values_A = list(avg_diff.values())
     values_B = list(avg_same.values())
     # 計算 A 和 B 的均值和標準差
@@ -83,16 +83,86 @@ def box_graph(avg_diff,avg_same,mode,norm=False):
     fig = px.violin(df, x='Group', y='NDT Score', color='Group', box=False, points="all", title=title)
     # 顯示p圖表
     fig.write_image(f"./{mode}_violin.png")
+    
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+import itertools
+def pca(vec):
+    track_vec = [np.array(value) for value in vec.values()]
+    X = np.vstack(track_vec)
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+
+    # 2. 進行 PCA
+    pca = PCA(n_components=2)  # 你可以選擇保留的主成分數量，這裡保留2個主成分
+    X_pca = pca.fit_transform(X_scaled)
+
+    # 輸出結果
+    print("原始數據的形狀:", X.shape)
+    print("降維後的數據形狀:", X_pca.shape)
+    print("主成分解釋的方差比例:", pca.explained_variance_ratio_)
+    print("主成分:", pca.components_)
+    # colors = itertools.cycle(plt.cm.rainbow(np.linspace(0, 1, len(vec))))  # 生成不同顏色
+    color_list = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', 
+                  '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf']
+    colors = itertools.cycle(color_list)
+    # markers = itertools.cycle(('o', 's', 'v', '^', '<', '>', 'd', 'p', '*', 'h'))  # 不同符號 (marker)
+    start_idx = 0  # 起始索引
+
+    plt.figure(figsize=(8, 6))
+    np.random.seed(0)
+    rand_x = generate_random_array(len(vec), 10)
+    # rand_x = [1 for i in range(10)] + [0 for i in range(100)]
+    # rand_x = [1 for i in range(100)] 
+    cnt = 0
+    
+    for track_name, track_data in vec.items():
+        # 根據每個 track 的數量劃分數據
         
+        num_points = len(track_data)
+        end_idx = start_idx + num_points
+        
+        # 繪製每個 track 的數據，顏色不同
+        if(rand_x[cnt]==1):
+            clr = next(colors)
+            plt.scatter(X_pca[start_idx:end_idx, 0], X_pca[start_idx:end_idx, 1], color=clr,label=track_name)
+            plt.text(X_pca[start_idx:end_idx, 0], X_pca[start_idx:end_idx, 1], f'{int(track_name)}',color=clr, fontsize=12, ha='right')
+        start_idx = end_idx  # 更新下一個 track 的起始索引
+        cnt += 1
+        
+    plt.title('PCA Visualization of Tracks')
+    plt.xlabel('Principal Component 1')
+    plt.ylabel('Principal Component 2')
+    plt.legend()
+    plt.show()
+    
+    
+def generate_random_array(N, x):
+    # 生成全為0的陣列
+    array = np.zeros(N, dtype=int)
+    
+    # 隨機選擇 x 個位置將其設為 1
+    indices = np.random.choice(N, x, replace=False)
+    array[indices] = 1
+    
+    return array
+
 if __name__ == '__main__':
     PATH="/home/philly12399/philly_ssd/NDT_EXP/0021/analysis/"
     modes=["merge_merge","frame_merge"]
-    for mode in modes:
-        member=list(io_utils.read_pkl(os.path.join(PATH,"merged_member.pkl")).keys())
-        avg_diff=io_utils.read_pkl(os.path.join(PATH,"avg_"+mode+"_diff.pkl"))
-        avg_same=io_utils.read_pkl(os.path.join(PATH,"avg_"+mode+"_same.pkl"))
-        map_score=io_utils.read_pkl(os.path.join(PATH,"map_"+mode+"_score.pkl"))
-        # density_graph(avg_diff,avg_same,mode)
-        box_graph(avg_diff,avg_same,mode,norm=False)
-        
+    # for mode in modes:
+    #     member=list(io_utils.read_pkl(os.path.join(PATH,"merged_member.pkl")).keys())
+    #     avg_diff=io_utils.read_pkl(os.path.join(PATH,"avg_"+mode+"_diff.pkl"))
+    #     avg_same=io_utils.read_pkl(os.path.join(PATH,"avg_"+mode+"_same.pkl"))
+    #     map_score=io_utils.read_pkl(os.path.join(PATH,"map_"+mode+"_score.pkl"))
+    #     # density_graph(avg_diff,avg_same,mode)
+    #     violin_graph(avg_diff,avg_same,mode,norm=False)
+    frame_merge = io_utils.read_pkl(os.path.join(PATH,"frame_merge_score_all_frame.pkl"))
+    # pca(frame_merge)
+    
+    merge_merge = io_utils.read_pkl(os.path.join(PATH,"map_merge_merge_score.pkl"))
+    for key in merge_merge.keys():
+        arr = [merge_merge[key][k] for k in merge_merge[key]]
+        merge_merge[key] = [arr]
+    pca(merge_merge)
     
