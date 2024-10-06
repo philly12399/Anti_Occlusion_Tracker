@@ -292,13 +292,13 @@ if __name__ == '__main__':
     os.system(f"mkdir -p {EXP_PATH}")
     overwrite=False
     INFO_PATH=os.path.join(EXP_PATH,"info_by_trackid.pkl")
-    if(overwrite or (not os.path.exists(INFO_PATH))):
-        tracks_obj = get_obj_by_trackid(root_dense,label_path,seq)
-        write_trackid_info(tracks_obj,EXP_PATH)
-        print("create new trackid info")
-    else:
-        tracks_obj = io_utils.read_pkl(INFO_PATH)
-        print("load trackid info")
+    # if(overwrite or (not os.path.exists(INFO_PATH))):
+    #     tracks_obj = get_obj_by_trackid(root_dense,label_path,seq)
+    #     write_trackid_info(tracks_obj,EXP_PATH)
+    #     print("create new trackid info")
+    # else:
+    #     tracks_obj = io_utils.read_pkl(INFO_PATH)
+    #     print("load trackid info")
         
     # pdb.set_trace()
     # 把原本的NDT cache照trackid分類
@@ -306,4 +306,8 @@ if __name__ == '__main__':
     # merge_NDT_of_track(tracks_obj,root_dense,EXP_PATH)
     # NDT_exp_merge_to_merge(tracks_obj,EXP_PATH)
     # NDT_exp_frame_to_merge(tracks_obj,EXP_PATH)
-
+    
+    # analys="/home/philly12399/philly_ssd/NDT_EXP/0021/analysis/"
+    # x="avg_frame_merge_same"
+    # io_utils.pkl_to_txt(os.path.join(analys,f"{x}.pkl"),os.path.join(analys,f"{x}.txt"))
+  

@@ -2,7 +2,7 @@ import os
 import Philly_libs.philly_io as io_utils
 from Philly_libs.NDT import *
 
-def draw_NDT_trackid(EXP_PATH):
+def draw_NDT_trackid(EXP_PATH,mem=None):
     merged_track_exp_path=os.path.join(EXP_PATH,f"car_all") 
     trackid_exp_path=os.path.join(EXP_PATH,"car")
     mode_list=["merge","frame"]     
@@ -27,6 +27,8 @@ def draw_NDT_trackid(EXP_PATH):
                     in_frame = in1.split(' ')
                     trackid = str(in_frame[0]).zfill(4)
                     frameid = str(in_frame[1]).zfill(4)
+                    if(mem!=None):
+                        frameid = str(mem[trackid][int(in_frame[1])]).zfill(4)
                     dense_path =os.path.join(trackid_exp_path,f"{trackid}_{frameid}.pkl")
                 print(dense_path)    
                 dense_NDT = io_utils.read_pkl(dense_path)  
@@ -39,4 +41,7 @@ if __name__ == '__main__':
     seq = str(seq).zfill(4)
     EXP_PATH="/home/philly12399/philly_ssd/NDT_EXP/"
     EXP_PATH = os.path.join(EXP_PATH,seq)  
-    draw_NDT_trackid(EXP_PATH)   
+    merged_mem = io_utils.read_pkl("/home/philly12399/philly_ssd/NDT_EXP/0021/analysis/merged_member.pkl")
+    draw_NDT_trackid(EXP_PATH,mem=merged_mem)   
+    # draw_NDT_trackid(EXP_PATH,mem=None)   
+    

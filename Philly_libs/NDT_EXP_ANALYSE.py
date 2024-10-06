@@ -12,9 +12,13 @@ from Philly_libs.philly_utils import DictToObj
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-def density_graph(avg_diff,avg_same,mode,norm=True): 
-    values_A = list(avg_diff.values())
-    values_B = list(avg_same.values())
+def density_graph(avg_diff,avg_same,mode,norm=False): 
+    if(isinstance(avg_diff,dict)):
+        values_A = list(avg_diff.values())
+        values_B = list(avg_same.values())
+    else:
+        values_A = avg_diff
+        values_B = avg_same
     # 計算 A 和 B 的均值和標準差
     mean_A, std_A = np.mean(values_A), np.std(values_A)
     mean_B, std_B = np.mean(values_B), np.std(values_B)
@@ -54,8 +58,13 @@ import plotly.express as px
 import pandas as pd
 
 def violin_graph(avg_diff,avg_same,mode,norm=False): 
-    values_A = list(avg_diff.values())
-    values_B = list(avg_same.values())
+    if(isinstance(avg_diff,dict)):
+        values_A = list(avg_diff.values())
+        values_B = list(avg_same.values())
+    else:
+        values_A = avg_diff
+        values_B = avg_same
+
     # 計算 A 和 B 的均值和標準差
     mean_A, std_A = np.mean(values_A), np.std(values_A)
     mean_B, std_B = np.mean(values_B), np.std(values_B)
@@ -146,7 +155,39 @@ def generate_random_array(N, x):
     array[indices] = 1
     
     return array
+def frame_merge_all(PATH):
+    frame_merge = io_utils.read_pkl(os.path.join(PATH,"frame_merge_score_all_frame.pkl"))
+    same=[]
+    diff=[]
+    for i,trackid_i in enumerate(frame_merge):
+        # same[trackid_i]=[]
+        # diff[trackid_i]=[]
+        for frame in frame_merge[trackid_i]:
+            for si in range(len(frame)):
+                if(i==si):
+                    # same[trackid_i].append(frame[si])   
+                    same.append(frame[si])           
+                else:
+                    # diff[trackid_i].append(frame[si]) 
+                    diff.append(frame[si])   
+                      
+    density_graph(diff,same,"frame_merge_all")
 
+def merge_merge_all(PATH):
+    merge_merge = io_utils.read_pkl(os.path.join(PATH,"map_merge_merge_score.pkl"))
+    same=[]
+    diff=[]
+    for trackid_i in merge_merge:
+        for trackid_j in merge_merge:
+                score = merge_merge[trackid_i][trackid_j]
+                if(trackid_i==trackid_j):
+                    # same[trackid_i].append(frame[si])   
+                    same.append(score)           
+                else:
+                    # diff[trackid_i].append(frame[si]) 
+                    diff.append(score)   
+    density_graph(diff,same,"merge_merge_all")
+    
 if __name__ == '__main__':
     PATH="/home/philly12399/philly_ssd/NDT_EXP/0021/analysis/"
     modes=["merge_merge","frame_merge"]
@@ -157,12 +198,13 @@ if __name__ == '__main__':
     #     map_score=io_utils.read_pkl(os.path.join(PATH,"map_"+mode+"_score.pkl"))
     #     # density_graph(avg_diff,avg_same,mode)
     #     violin_graph(avg_diff,avg_same,mode,norm=False)
-    frame_merge = io_utils.read_pkl(os.path.join(PATH,"frame_merge_score_all_frame.pkl"))
-    # pca(frame_merge)
+        
+    # frame_merge_all(PATH)
+    merge_merge_all(PATH)
     
-    merge_merge = io_utils.read_pkl(os.path.join(PATH,"map_merge_merge_score.pkl"))
-    for key in merge_merge.keys():
-        arr = [merge_merge[key][k] for k in merge_merge[key]]
-        merge_merge[key] = [arr]
-    pca(merge_merge)
+    # merge_merge = io_utils.read_pkl(os.path.join(PATH,"map_merge_merge_score.pkl"))
+    # for key in merge_merge.keys():
+    #     arr = [merge_merge[key][k] for k in merge_merge[key]]
+    #     merge_merge[key] = [arr]
+    # pca(merge_merge)
     
