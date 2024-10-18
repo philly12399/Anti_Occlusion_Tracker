@@ -135,5 +135,5 @@ def POT_append_downsample(pcd_all, pcd):
         # old_pcds = old_pcds[random_sample(len(old_pcds),4096)]
         #NEW METHOD
         pcd_all = np.row_stack((pcd_all,pcd))	
-        pcd_sample = pcd_all[random_sample(len(pcd_all),4096)]
+    pcd_sample = pcd_all[random_sample(len(pcd_all),4096)]
     return pcd_all,pcd_sample
