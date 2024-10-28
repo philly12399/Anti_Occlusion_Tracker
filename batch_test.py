@@ -17,14 +17,14 @@ import pdb
     "--config",
     "-c",
     type=str,
-    default="KITTI_eval_gtdet.yml",
+    default="KITTI_det_seq21.yml",
     help="Name of config file .",
 )
 @click.option(
     "--eval_config",
     "-ec",
     type=str,
-    default="KITTI_eval_gtdet_car.yml",
+    default="KITTI_seq21.yml",
     help="Name of eval config file .",
 )
 @click.option(
@@ -43,7 +43,7 @@ import pdb
 )
 def main(det_root, config, eval_config, output, exp):
     diff_range=[0,1,2,3,4]
-    diff_range=[3,4]
+    # diff_range=[3,4]
     
     output_path = os.path.join(output,exp)
     if os.path.exists(output_path):

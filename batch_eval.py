@@ -17,7 +17,7 @@ import pdb
     "--eval_config",
     "-ec",
     type=str,
-    default="KITTI_eval_gtdet_car.yml",
+    default="KITTI_gtdet_car.yml",
     help="Name of config file .",
 )
 def eval(root,eval_config):
