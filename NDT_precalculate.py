@@ -70,7 +70,7 @@ def main_inner(cfg):
     #TIME
     for seq_name in seq_eval:
         start=time.time()
-        format = cfg.label_format
+        format = cfg.label_format.lower()
         if(seq_name == "0021"): format = "wayside"  
         Box3D.set_label_format(format)      
         seq_file = os.path.join(det_root, seq_name+'.txt')

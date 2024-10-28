@@ -42,21 +42,15 @@ class AB3DMOT(object):
         self.calib = calib
         self.oxts = oxts
 
-        if(cfg.use_default):
-            print('Use default param')
-            self.get_param(cfg, cat)            
-        else:
-            print('Use config file param')
-            assert cat.lower() in cfg.base_param, f"no param of class {cat.lower()}"
-            param=copy.deepcopy(cfg.base_param[cat.lower()])
-            self.get_param(cfg, cat, param)
-            
+
+        assert cat.lower() in cfg.base_param, f"no param of class {cat.lower()}"
+        param=copy.deepcopy(cfg.base_param[cat.lower()])
+        self.get_param(cfg, cat, param)
         self.print_param()
   
         self.label_format = cfg.label_format.lower()        
         self.label_coord = cfg.label_coord
-        self.buffer_size = cfg.buffer_size            
-        self.history = cfg.history
+        self.history = 1
         self.kf_initial_speed=cfg.kf_initial_speed
         
         self.output_kf_cls = cfg.output_kf_cls

@@ -48,10 +48,6 @@ class AB3DMOT(object):
         if('label_format' in cfg):
             self.label_format = cfg.label_format
             
-        self.buffer_size = 30
-        if('buffer_size' in cfg):
-            self.buffer_size = cfg.buffer_size
-            
         self.history = 5
         if('history' in cfg):
             self.history = cfg.history
@@ -320,7 +316,7 @@ class AB3DMOT(object):
         new_id_list = list()					# new ID generated for unmatched detections
         for i in unmatched_dets:        			# a scalar of index
             bbox3d = Box3D.bbox2array(dets[i])
-            trk = TrackBuffer(info[i, :], self.ID_count[0], bbox3d, voxels[i], pcd[i], frame, self.buffer_size)
+            trk = TrackBuffer(info[i, :], self.ID_count[0], bbox3d, voxels[i], pcd[i], frame)
             self.track_buf.append(trk)
             new_id_list.append(trk.id)
             # print('track ID %s has been initialized due to new detection' % trk.id)
