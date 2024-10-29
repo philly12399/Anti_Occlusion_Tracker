@@ -3,13 +3,13 @@
 description                  : AB3DMOT
 seed                         : 0
 # --------------- main.py
-save_root                    : ./tracker_exp_local/KITTI/exp
+save_root                    : ./tracker_exp_local/KITTI/NDT_2stage
 dataset                      : KITTI      # KITTI
 split                        : val        # val, test
-det_name                     : det_link  # name of the detector [pointrcnn, pvrcnn]/ gt
+det_name                     : diff3  # name of the detector [pointrcnn, pvrcnn]/ gt
 cat_list                     : ['car'] #['Car', 'Pedestrian', 'Cyclist']
 #--------------- SEQ
-seq_eval                     : [1,2,5,7,8,9,11,18,19,20] #[1,2,5,7,8,9,11,18,19,20] #sequence to track, [] means by default
+seq_eval                     : [1,2,5,7,8,9,11,18,19,20] #sequence to track, [] means by default
 # --------------- model.py
 ego_com                      : True      # turn on only slightly reduce speed but increase a lot for performance
 #---------------- addition
@@ -21,16 +21,16 @@ kf_initial_speed             : 30 #km/h
 conf_thres                   : 0.0 
 # ------------------NDT
 NDT_flag                     : True
-pcd_db_root                  : "./data/KITTI/dense_db/dense_128_all/"
+pcd_db_root                  : "./data/KITTI/dense_db/gtdet/dense_128_all/"
 NDT_cfg                      : {'voxel_size': 0.5, 'overlap': True, 'min_pts_voxel': 5, 'noise': 0.05}
-NDT_cache_root               : "./data/KITTI/NDT_pkl/"
+NDT_cache_root               : "./data/KITTI/NDT_pkl/gtdet/"
 NDT_cache_name               : "cache-128" #path for load/write
 NDT_thres                    : {'car': {'NDT_score': -15000,'max_dist': 6.0,'max_angle': 20},
                                 'cyclist': {'NDT_score': -15000,'max_dist': 4.5,'max_angle': 20}} 
 #---------------AB3DMOT base
-base_param                   : {'car':{'algm': 'hungar', 'metric': 'giou_3d', 'thres': 0.2, 'min_hits': 1, 'max_age': 20},
-                                'cyclist':{'algm': 'hungar', 'metric': 'dist_3d', 'thres': 2.0, 'min_hits': 1, 'max_age': 20}}          
+base_param                   : {'car':{'algm': 'hungar', 'metric': 'giou_3d', 'thres': 0.2, 'min_hits': 1, 'max_age': 40},
+                                'cyclist':{'algm': 'hungar', 'metric': 'dist_3d', 'thres': 2.0, 'min_hits': 1, 'max_age': 40}}          
 # --------------- DA stage2 threshold
-two_stage                   : False     
+two_stage                   : True     
 stage2_param                : {'car':{'algm': 'hungar', 'metric': 'dist_3d', 'thres': 3.0},
                                 'cyclist':{'algm': 'hungar', 'metric': 'dist_3d', 'thres': 3.0}}    
