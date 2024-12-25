@@ -1,7 +1,7 @@
 # AOT Installation
 
 ## Repos
-Clone four repos and put them in same dir.
+Clone four repos and put them in same directory.
 
 AOT
 
