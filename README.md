@@ -1,10 +1,6 @@
 # AOT (Anti Occlusion Tracker)
 
-## Installation
-Please follow carefully our provided [installation instructions](docs/INSTALL.md), to avoid errors when running the code.
-
-## Overview
-### Repos
+## Repos
 [Anti_Occlusion_Tracker](https://github.com/philly12399/Anti_Occlusion_Tracker)
 
 [philly_utils](https://github.com/philly12399/philly_utils)
@@ -12,6 +8,9 @@ Please follow carefully our provided [installation instructions](docs/INSTALL.md
 [Point-MAE](https://github.com/philly12399/Point-MAE/tree/main)
 
 [3D-Detection-Tracking-Viewer](https://github.com/philly12399/3D-Detection-Tracking-Viewer)
+
+## Installation
+Please follow carefully our provided [installation instructions](docs/INSTALL.md), to avoid errors when running the code.
 
 ## Introduction
 ### Data & Procedure
