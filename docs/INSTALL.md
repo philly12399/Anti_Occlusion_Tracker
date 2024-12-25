@@ -1,69 +1,100 @@
-# AB3DMOT Installation
+# AOT Installation
 
-First of all, clone the code:
-~~~shell
-git clone https://github.com/xinshuoweng/AB3DMOT.git
-~~~
+## Repos
+Clone four repos and put them in same directory.
 
-## System Requirements
+AOT
 
-This code has only been tested on the following combination of major pre-requisites. Please check beforehand.
+├── [Anti_Occlusion_Tracker](https://github.com/philly12399/Anti_Occlusion_Tracker)
 
-* Ubuntu 18.04
-* Python 3.6
+├── [philly_utils](https://github.com/philly12399/philly_utils)
 
-## Dependencies:
+├── [Point-MAE](https://github.com/philly12399/Point-MAE/tree/main)
 
-This code requires the following packages:
-1. scikit-learn==0.19.2
-2. filterpy==1.4.5
-3. numba==0.43.1
-4. matplotlib==2.2.3
-5. pillow==6.2.2
-6. opencv-python==4.2.0.32
-7. glob2==0.6
-8. PyYAML==5.4
-9. easydict==1.9
-10. llvmlite==0.32.1 			
-11. wheel==0.37.1
+├── [3D-Detection-Tracking-Viewer](https://github.com/philly12399/3D-Detection-Tracking-Viewer)
 
-One can either use the system python or create a virtual enviroment (venv for python3) specifically for this project (https://www.pythonforbeginners.com/basics/how-to-use-python-virtualenv). To install required dependencies on the system python, please run the following command at the root of this code:
+## Main
+Main repo: https://github.com/philly12399/Anti_Occlusion_Tracker
+
+Utils repo: https://github.com/philly12399/philly_utils
+
+**Environment Installation**
 ```
-cd path/to/AB3DMOT
-pip3 install -r requirements.txt
-```
-To install required dependencies on the virtual environment of the python, please run the following command at the root of this code:
-
-```
-pip3 install venv
-python3 -m venv env
-source env/bin/activate
-pip3 install -r requirements.txt
-```
-
-Additionally, this code depends on my personal toolbox: https://github.com/xinshuoweng/Xinshuo_PyToolbox. Please install the toolbox by:
-
-*1. Clone the github repository.*
-~~~shell
-git clone https://github.com/xinshuoweng/Xinshuo_PyToolbox
-~~~
-
-*2. Install dependency for the toolbox.*
-~~~shell
+## conda install
+cd ./Anti_Occlusion_Tracker
+conda env create -f AOT_environment.yml  --name AOT
+conda activate AOT
+pip install -r requirement.txt
 cd Xinshuo_PyToolbox
-pip3 install -r requirements.txt
+pip install -r requirement.txt
 cd ..
-~~~
 
-Please add the path to the code to your PYTHONPATH in order to load the library appropriately. For example, if the code is located at /home/user/workspace/code/AB3DMOT, please add the following to your ~/.profile:
+#replace $PREFIX, export everytime restart bash
+export PYTHONPATH={$PREFIX/Anti_Occlusion_Tracker}:{$PREFIX/Anti_Occlusion_Tracker/Xinshuo_PyToolbox}:${PYTHONPATH}
 ```
-export PYTHONPATH=${PYTHONPATH}:/home/user/workspace/code/AB3DMOT
-export PYTHONPATH=${PYTHONPATH}:/home/user/workspace/code/AB3DMOT/Xinshuo_PyToolbox
+**How to run code**
 ```
-Then update your configuration with
+##run
+bash NDT_precalculate.sh ##NDT precalculate
+bash test.sh 
+bash eval.sh 
 ```
-source ~/.profile
-cd path/to/AB3DMOT
-source env/bin/activate
+`NDT_precalculate.sh`  reads config files in `configs/NDT`
+
+`test.sh` reads config files in `configs/`
+
+`eval.sh` reads config files in `scripts/KITTI/configs/`
+
+## Point-MAE
+Repo: https://github.com/philly12399/Point-MAE
+
+download pretrain.pth and put it in `Point-MAE/models/`
+
+![image](https://hackmd.io/_uploads/rJJVtjMSyl.png)
+
+point-mae reconstruct point cloud to dense point cloud
+
+require create **gt_db** first( **gt_db**: split point cloud of each detection bbox)
+
+**Environment Installation**
 ```
-You are now done with the installation! Feel free to play on the supported datasets ([KITTI](docs/KITTI.md), [nuScenes](docs/nuScenes.md))!
+#import docker image
+docker import ./0316-pointmae.tar pointmae
+# run docker image, replace {dir}
+docker run -it --shm-size="16g" -e PATH=/opt/conda/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin -v {your_pointmae_dir}:/Point-MAE -v {your_data_dir}:/mydata \
+-v /tmp/.X11-unix:/tmp/.X11-unix  --runtime=nvidia --gpus=all pointmae:latest bash
+# create link for mounted /mydata , so dataflow is same as outside(without docker)
+mkdir -p /home/philly12399/
+ln -s  /mydata /home/philly12399/philly_ssd
+```
+**How to run Point-MAE**
+```
+cd /Point-MAE
+bash vis_kitti.sh / bash vis_wayside.sh
+```
+change cfgs/
+
+take `vis_wayside.sh` for example, it reads`cfgs/pretrain_test_on_wayside_det.yaml`
+
+furthermore `dataset->test` reads`cfgs/dataset_configs/Wayside-DET.yaml`
+
+the former controls pointmae parameters
+
+the latter controls path of input data and sequences
+
+## Tracking Visualizer
+Repo: https://github.com/philly12399/3D-Detection-Tracking-Viewer
+
+**Environment Installation**
+```
+## conda
+cd ./3D-Detection-Tracking-Viewer
+conda env create -f trackvis_environment.yml  --name trackvis
+conda activate trackvis
+pip install -r requirement.txt
+```
+**How to run visualizer**
+```
+python3 tracking_viewer.py
+```
+You can change point cloudpath,sequnces,bbox type,label path ... in `tracking_viewer.py`.
