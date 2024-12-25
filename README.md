@@ -3,7 +3,9 @@
 ## Installation
 ### Main
 Main repo: https://github.com/philly12399/Anti_Occlusion_Tracker
+
 Utils repo: https://github.com/philly12399/philly_utils
+
 **Environment Installation**
 ```
 ## conda install
@@ -26,16 +28,22 @@ bash test.sh
 bash eval.sh 
 ```
 `NDT_precalculate.sh`  reads config files in `configs/NDT`
+
 `test.sh` reads config files in `configs/`
+
 `eval.sh` reads config files in `scripts/KITTI/configs/`
 
 ### Point-MAE
 Repo: https://github.com/philly12399/Point-MAE
+
 download pretrain.pth and put it in `Point-MAE/models/`
+
 ![image](https://hackmd.io/_uploads/rJJVtjMSyl.png)
 
 point-mae reconstruct point cloud to dense point cloud
+
 require create **gt_db** first( **gt_db**: split point cloud of each detection bbox)
+
 **Environment Installation**
 ```
 #import docker image
@@ -47,19 +55,24 @@ docker run -it --shm-size="16g" -e PATH=/opt/conda/bin:/usr/local/nvidia/bin:/us
 mkdir -p /home/philly12399/
 ln -s  /mydata /home/philly12399/philly_ssd
 ```
-**How to run POINTMAE**
+**How to run Point-MAE**
 ```
 cd /Point-MAE
 bash vis_kitti.sh / bash vis_wayside.sh
 ```
-can change cfgs/
+change cfgs/
+
 take `vis_wayside.sh` for example, it reads`cfgs/pretrain_test_on_wayside_det.yaml`
+
 furthermore `dataset->test` reads`cfgs/dataset_configs/Wayside-DET.yaml`
+
 the former controls pointmae parameters
+
 the latter controls path of input data and sequences
 
 ### Tracking Visualizer
 Repo: https://github.com/philly12399/3D-Detection-Tracking-Viewer
+
 **Environment Installation**
 ```
 ## conda
