@@ -3,7 +3,7 @@
 description                  : AB3DMOT
 seed                         : 0
 # --------------- main.py
-save_root                    : ./tracker_exp_local/KITTI/exp
+save_root                    : ./data/track_exp/KITTI/exp
 dataset                      : KITTI      # KITTI
 split                        : val        # val, test
 det_name                     : det_link  # name of the detector [pointrcnn, pvrcnn]/ gt

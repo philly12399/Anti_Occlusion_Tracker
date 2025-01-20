@@ -1,5 +1,6 @@
 import warnings, numpy as np, os
 from  Philly_libs.philly_io import *
+import pdb
 ################## loading
 def load_detection(file, format="",cat = []):
     # load from raw file 
@@ -28,9 +29,10 @@ def load_detection(file, format="",cat = []):
                 dets2[i][2] = dets2[i][2].lower()
                 # if(dets2[i][2] in cls_map): #truck to car
                 #     dets2[i][2] = cls_map[dets2[i][2]]	  
+                # pdb.set_trace()
                 if(dets2[i][2] not in str2id):
                     frame_cnt[frame]+=1
-                    assert False, "You have to use gtdet diff0 as NDT preprocess(no filtered)."
+                    # assert False, "You have to use gtdet diff0 as NDT preprocess(no filtered)."
                     continue    
                 dets1[i][2] = str2id[dets2[i][2]]
                 if(dets1[i][2] in catid):

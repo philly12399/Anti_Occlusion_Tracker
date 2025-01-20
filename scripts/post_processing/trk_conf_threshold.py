@@ -9,7 +9,7 @@ from xinshuo_io import load_txt_file, load_list_from_folder, mkdir_if_missing, f
 
 def parse_args():
 	parser = argparse.ArgumentParser(description='AB3DMOT')
-	parser.add_argument('--exp','-e', type=str, default='pointrcnn_Car_test_thres', help='name of the exp')
+	parser.add_argument('--exp','-e', type=str, default='../../data/track_exp/KITTI/exp', help='dir of tracking result without post processing')
 	# parser.add_argument('--result_dir','-r', type=str, default='.', help='name of the result root')
  
 	# parser.add_argument('--dataset', type=str, default='nuScenes', help='KITTI, nuScenes')
@@ -21,14 +21,13 @@ def conf_thresholding(data_dir, save_dir, thres_dict):
 	
 	# loop through all hypotheses
 	hypo_index=0
-	
 	############### collect all trajectories and their scores/categories at every frame
 	trk_id_score, cat_dict = dict(), dict()
 	eval_dir = os.path.join(data_dir, 'label')
 	if(not os.path.exists(eval_dir)):
 		eval_dir = os.path.join(data_dir, 'data_%d' % (hypo_index))
 	seq_list, num_seq = load_list_from_folder(eval_dir)
-
+	print(seq_list)
 	for seq_file in seq_list:
 
 		# loading tracklets in this sequence
@@ -111,7 +110,7 @@ if __name__ == '__main__':
 	# thres_dict = get_threshold(args.dataset, det_name)
 	thres_dict = {'Car':3.240738, 'Cyclist':3.645319}
 	# get directories
-	# result_dir='../../tracker_exp_local/'
+	# result_dir='../../data/track_exp/'
 	file_path = os.path.dirname(os.path.realpath(__file__))
 	# root_dir = os.path.join(file_path, args.result_dir)
 	data_dir = exp

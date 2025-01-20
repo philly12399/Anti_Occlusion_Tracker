@@ -186,7 +186,7 @@ def main(args):
     # categories of objects have the same ID. This allows visualization of all object categories together
     # without ID conflicting, Also use 1 (not 0) as start because MOT benchmark requires positive ID
     ID_start = 1
-
+    REMOVE_UNUSED_OUTPUT = True
     # run tracking for each category
     #cat to capitalize
     cfg.cat_list = [cat.capitalize() for cat in cfg.cat_list]
@@ -198,6 +198,10 @@ def main(args):
     print_log('\ncombining results......', log=log)
     
     combine_trk_cat(cfg.split, cfg.dataset, cfg.det_name, 'H%d' % cfg.num_hypo, cfg.num_hypo, config_path, cfg.save_root, cfg.seq_eval, cfg.cat_list)
+    print(f"Output tracking results to {cfg.save_root}")
+    if(REMOVE_UNUSED_OUTPUT):
+        print(f"Remove unused {cfg.save_root}/{cfg.det_name}_* .")
+        os.system(f"rm -r {cfg.save_root}/{cfg.det_name}_*")
     print_log('\nDone!', log=log)
     log.close()
     

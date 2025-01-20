@@ -56,7 +56,7 @@ class TrackBuffer():
         if(self.NDT_updated == True):
             return
         mean_dim = np.mean(self.bbox,0)[-3:]     
-        if(Box3D.label_format == "wayside"):
+        if(Box3D.label_format.lower() == "wayside"):
             mean_dim[0], mean_dim[1], mean_dim[2] = mean_dim[2], mean_dim[0], mean_dim[1] 
         mean_box = Box3D.array2bbox(np.append([0,0,0,0],mean_dim))#l,w,h
         valid,invalid,allv = NDT_voxelize(self.pcd_of_track, mean_box, cfg = self.NDT_cfg, draw=False) #valid,invalid,all
@@ -107,7 +107,7 @@ class TrackBuffer():
         # initialize data
         self.kf.x[:7] = bbox3D.reshape((7, 1))
         
-        if(Box3D.label_format=="kitti"):
+        if(Box3D.label_format.lower()=="kitti"):
             rot=-bbox3D[3] # kitti的rot是多一個負號
         else:
             rot=bbox3D[3]

@@ -1375,7 +1375,7 @@ def main(args):
     
 def parse_args():
     parser = argparse.ArgumentParser(description='AB3DMOT')
-    parser.add_argument('-c','--config', type=str, default="./configs/KITTI_det_car_sota.yml", help='Config file path')
+    parser.add_argument('-c','--config', type=str, default="./configs/KITTI_demo.yml", help='Config file path')
     parser.add_argument('-e','--exp_path', type=str, default="", help='whole exp path')
     args = parser.parse_args()
     return args

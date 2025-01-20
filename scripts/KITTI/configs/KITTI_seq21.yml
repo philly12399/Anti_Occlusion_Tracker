@@ -2,10 +2,10 @@
 # ------------------- Dataset Name -------------------------
 description                  : KITTI
 # ------------------- Path Options -------------------------
-gt_path                      : "/home/philly12399/thesis/AB3DMOT/scripts/KITTI/label/" 
-calib_path                   : "/home/philly12399/philly_ssd/KITTI_tracking/training/calib/"
-trk_path                     : "/home/philly12399/thesis/AB3DMOT/tracker_exp_local/KITTI/exp/label"
-out_path                     : "/home/philly12399/thesis/AB3DMOT/tracker_exp_local/KITTI/exp/" 
+gt_path                      : "./label/" 
+calib_path                   : "../../data/KITTI/tracking/training/calib/"
+trk_path                     : "../../data/track_exp/KITTI/exp/label"
+out_path                     : "../../data/track_exp/KITTI/exp/" 
 exp_name                     : eval
 # ------------------- Eval Options -------------------------
 iou                          : 3D

@@ -164,7 +164,7 @@ def main(args):
     #cat to capitalize
     cfg.cat_list = [cat.capitalize() for cat in cfg.cat_list]
     timestr = datetime.now().strftime("%m-%d-%H-%M") 
-    DUPLICATE = False  
+    DUPLICATE = True  
     NDT_cache_path = os.path.join(cfg.NDT_cache_root, cfg.NDT_cache_name)
     if((not DUPLICATE) and os.path.exists(NDT_cache_path)):
         print(f"NDT cache {NDT_cache_path} exist;")               

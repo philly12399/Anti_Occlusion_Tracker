@@ -3,7 +3,7 @@
 description                  : AB3DMOT
 seed                         : 0
 # --------------- main.py
-save_root                    : ./data/track_exp/KITTI/exp
+save_root                    : ./data/track_exp/demo
 dataset                      : KITTI      # KITTI
 split                        : val        # val, test
 det_name                     : mark_det  # name of the detector [pointrcnn, pvrcnn]/ gt
@@ -21,10 +21,10 @@ kf_initial_speed             : 30 #km/h
 conf_thres                   : 0.0 
 # ------------------NDT
 NDT_flag                     : True
-pcd_db_root                  : "./data/KITTI/dense_db/mark_det_0/dense_128_all/"
+pcd_db_root                  : "./data/KITTI/dense_db/demo/"
 NDT_cfg                      : {'voxel_size': 0.5, 'overlap': True, 'min_pts_voxel': 5, 'noise': 0.05}
 NDT_cache_root               : "./data/KITTI/NDT_pkl/det/"
-NDT_cache_name               : "mark_det_0_cache-128_all" #path for load/write
+NDT_cache_name               : "demo_cache" #path for load/write
 NDT_thres                    : {'car': {'NDT_score': -15000,'max_dist': 6.0,'max_angle': 20},
                                 'cyclist': {'NDT_score': -15000,'max_dist': 4.5,'max_angle': 20}}  
 #---------------AB3DMOT base

@@ -1,0 +1,20 @@
+##ONLY FOR NDT PREPROCESS
+# ------------------- General Options -------------------------
+description                  : AB3DMOT
+seed                         : 0
+# --------------- main.py
+dataset                      : KITTI      # KITTI
+split                        : val        # val, test
+det_name                     : mark_det  # name of the detector [pointrcnn, pvrcnn]/ gt
+cat_list                     : ['car'] #['Car', 'Pedestrian', 'Cyclist']
+label_format                 : KITTI      # Kitti, Waymo, nuscenes, AB3DMOT
+# ------------------NDT
+NDT_flag                     : True
+pcd_db_root                  : "./data/KITTI/dense_db/demo/"
+NDT_cfg                      : {'voxel_size': 0.5, 'overlap': True, 'min_pts_voxel': 5, 'noise': 0.05}
+NDT_cache_root               : "./data/KITTI/NDT_pkl/det/"
+NDT_cache_name               : "demo_cache" #path for load/write
+#---------------
+seq_eval                     : [21]
+
+

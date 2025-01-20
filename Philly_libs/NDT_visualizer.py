@@ -40,8 +40,9 @@ def draw_single_NDT(path):
     print(path)
     dense_path =os.path.join(path)
     dense_NDT = io_utils.read_pkl(dense_path)  
-    draw_NDT_voxel(dense_NDT,random=False)     
+    draw_NDT_voxel(dense_NDT,random=False,drawbox=True)     
     return 
+
 def draw_NDT_dir(root):
     for r in sorted(os.listdir(root)):
         path = os.path.join(root,r)
@@ -49,13 +50,12 @@ def draw_NDT_dir(root):
     return
 
 if __name__ == '__main__':
-    seq=21
+    seq=1
     seq = str(seq).zfill(4)
-    EXP_PATH="/home/philly12399/philly_ssd/NDT_EXP/"
+    EXP_PATH="/home/philly12399/philly_ssd/ab3dmot/NDT_pkl/det/demo_gtdets_car_cache/"
     EXP_PATH = os.path.join(EXP_PATH,seq)  
     # merged_mem = io_utils.read_pkl("/home/philly12399/philly_ssd/NDT_EXP/0021/analysis/merged_member.pkl")
     # draw_NDT_trackid(EXP_PATH,mem=merged_mem)   
+    draw_NDT_dir(EXP_PATH)
     
-    draw_NDT_dir("/home/philly12399/philly_ssd/ab3dmot/NDT_pkl/det/mark_det_0_cache-128_all/0021")
-    # draw_NDT_trackid(EXP_PATH,mem=None)   
     
