@@ -5,7 +5,7 @@ seed                         : 0
 # --------------- main.py
 dataset                      : KITTI      # KITTI
 split                        : val        # val, test
-det_name                     : mark_det  # name of the detector [pointrcnn, pvrcnn]/ gt
+det_name                     : diff3  # name of the detector [pointrcnn, pvrcnn]/ gt
 cat_list                     : ['car'] #['Car', 'Pedestrian', 'Cyclist']
 label_format                 : KITTI      # Kitti, Waymo, nuscenes, AB3DMOT
 # ------------------NDT
